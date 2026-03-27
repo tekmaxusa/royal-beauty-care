@@ -1,0 +1,40 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@100..900&display=swap');
+
+@theme {
+  --font-serif: "Playfair Display", serif;
+  --font-sans: "Inter", sans-serif;
+
+  --color-luxury-beige: #F5F2ED;
+  --color-luxury-gold: #D4AF37;
+  --color-luxury-blush: #FDF2F0;
+  --color-luxury-black: #1A1A1A;
+}
+
+@layer base {
+  body {
+    @apply font-sans bg-white text-luxury-black antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+}
+
+.glass-card {
+  @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-sm;
+}
+
+.luxury-underline {
+  @apply relative after:absolute after:bottom-0 after:left-0 after:h-[1px] after:w-0 after:bg-luxury-gold after:transition-all after:duration-300 hover:after:w-full;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-luxury-beige;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-luxury-gold/30 rounded-full hover:bg-luxury-gold/50 transition-colors;
+}
