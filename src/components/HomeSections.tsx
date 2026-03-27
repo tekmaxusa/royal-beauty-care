@@ -4,30 +4,30 @@ import { ArrowRight, Star, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SERVICES, TESTIMONIALS, GALLERY_IMAGES, CONTACT_INFO, SERVICE_CATEGORIES } from '@/src/constants';
 import { SafeImage } from '@/src/components/SafeImage';
+import heroSlide1 from '@/src/assets/home-hero-1.png';
+import heroSlide2 from '@/src/assets/home-hero-2.png';
+import heroSlide3 from '@/src/assets/home-hero-3.png';
 
 export const Hero = () => {
   const slides = useMemo(
     () => [
       {
         id: 'signature',
-        image:
-          'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=1920',
+        image: heroSlide1,
         eyebrow: 'Royal Beauty Care',
         title: 'Indulge in pure\nLuxury',
         subtitle: 'Premium treatments, curated rituals, and a serene escape designed around you.',
       },
       {
         id: 'precision',
-        image:
-          'https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&q=80&w=1920',
+        image: heroSlide2,
         eyebrow: 'Personalized care',
         title: 'Feel radiant.\nLook effortless.',
         subtitle: 'From advanced skincare to signature services—book your next visit in minutes.',
       },
       {
         id: 'hours',
-        image:
-          'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&q=80&w=1920',
+        image: heroSlide3,
         eyebrow: 'Open 6 days a week',
         title: 'Business\nHours',
         subtitle: 'Mon–Sat: 10:00 AM – 7:00 PM · Sun: Closed',
@@ -54,7 +54,6 @@ export const Hero = () => {
             src={s.image}
             alt=""
             className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
             initial={{ opacity: 0, scale: 1.02 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.02 }}
@@ -188,10 +187,9 @@ export const AboutPreview = () => {
               className="relative z-10"
             >
               <img
-                src="https://images.unsplash.com/photo-1560869713-7d0a29430803?auto=format&fit=crop&q=80&w=1200"
+                src={heroSlide2}
                 alt="Salon Interior"
                 className="w-full aspect-[4/5] object-cover shadow-2xl rounded-sm border-[12px] border-white"
-                referrerPolicy="no-referrer"
               />
             </motion.div>
             <div className="absolute -top-12 -left-12 w-48 h-48 bg-luxury-gold/10 rounded-full blur-3xl -z-0" />
