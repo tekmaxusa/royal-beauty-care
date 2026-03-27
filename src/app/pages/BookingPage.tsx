@@ -526,6 +526,29 @@ export default function BookingPage() {
     }
   };
 
+  const serviceOptions = useMemo(() => {
+    const out: { key: string; label: string }[] = [];
+    for (const cat of categories) {
+      for (const s of cat.services) {
+        out.push({
+          key: `${cat.id}|${s.name}`,
+          label: `${s.name} — ${s.price}`,
+        });
+      }
+    }
+    return out;
+  }, [categories]);
+
+  const selectedServiceLabel = useMemo(() => {
+    if (!selectedService) return 'Please select a service';
+    const [catId, svcName] = selectedService.split('|');
+    const cat = categories.find((c) => c.id === catId);
+    const svc = cat?.services.find((x) => x.name === svcName);
+    if (!cat || !svc) return 'Please select a service';
+    return `${cat.name} — ${svc.name} (${svc.price})`;
+  }, [selectedService, categories]);
+
+  // IMPORTANT: keep all hooks above any conditional return to avoid hook-order mismatches (React error #310).
   if (authLoading || metaLoading) {
     return (
       <div className="min-h-screen bg-salon-beige pt-28 flex justify-center">
@@ -575,28 +598,6 @@ export default function BookingPage() {
       </div>
     </div>
   );
-
-  const serviceOptions = useMemo(() => {
-    const out: { key: string; label: string }[] = [];
-    for (const cat of categories) {
-      for (const s of cat.services) {
-        out.push({
-          key: `${cat.id}|${s.name}`,
-          label: `${s.name} — ${s.price}`,
-        });
-      }
-    }
-    return out;
-  }, [categories]);
-
-  const selectedServiceLabel = useMemo(() => {
-    if (!selectedService) return 'Please select a service';
-    const [catId, svcName] = selectedService.split('|');
-    const cat = categories.find((c) => c.id === catId);
-    const svc = cat?.services.find((x) => x.name === svcName);
-    if (!cat || !svc) return 'Please select a service';
-    return `${cat.name} — ${svc.name} (${svc.price})`;
-  }, [selectedService, categories]);
 
   return (
     <div className="min-h-screen bg-salon-beige pt-36 md:pt-40 pb-20 px-6">
@@ -859,10 +860,28 @@ export default function BookingPage() {
 
             {/* Contact details already collected in Details step */}
 
-            <div className="bg-white border border-salon-ink/5 shadow-sm p-8 space-y-4">
-              <h3 className="text-sm font-medium text-salon-ink">
-                {needsCardPayment ? 'Deposit payment' : depositDueCents > 0 ? 'Deposit (dev bypass)' : 'Confirm'}
-              </h3>
+            <div className="rounded-2xl border border-salon-ink/10 bg-white shadow-[0_20px_50px_-24px_rgba(0,0,0,0.15)] overflow-hidden">
+              <div className="px-6 sm:px-8 py-5 border-b border-salon-ink/5 bg-gradient-to-r from-white to-salon-beige/60">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-salon-ink/55">Online payment</p>
+                <div className="mt-1 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+                  <h3 className="text-lg sm:text-xl font-serif text-salon-ink">
+                    {needsCardPayment ? 'Secure deposit' : depositDueCents > 0 ? 'Deposit (dev bypass)' : 'Confirm booking'}
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="inline-flex items-center rounded-full bg-salon-ink/5 px-3 py-1 text-[11px] text-salon-ink/70">
+                      Total <span className="ml-2 font-medium text-salon-ink">{formatUsd(snapServiceTotalCents)}</span>
+                    </span>
+                    <span className="inline-flex items-center rounded-full bg-salon-gold/15 px-3 py-1 text-[11px] text-salon-ink/70">
+                      Due now <span className="ml-2 font-medium text-salon-ink">{formatUsd(depositDueCents)}</span>
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-salon-ink/60 mt-3 leading-relaxed">
+                  Remaining balance is collected in store (tip handled in Clover POS).
+                </p>
+              </div>
+
+              <div className="px-6 sm:px-8 py-7 space-y-6">
               {needsCardPayment ? (
                 <>
                   <p className="text-xs text-salon-ink/55">
@@ -876,7 +895,7 @@ export default function BookingPage() {
                     <input
                       value={billingName}
                       onChange={(e) => setBillingName(e.target.value)}
-                      className="w-full border-b border-salon-ink/20 py-2 focus:border-salon-gold outline-none bg-transparent"
+                      className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
                       autoComplete="cc-name"
                       required
                     />
@@ -886,7 +905,7 @@ export default function BookingPage() {
                     <input
                       value={billingAddress}
                       onChange={(e) => setBillingAddress(e.target.value)}
-                      className="w-full border-b border-salon-ink/20 py-2 focus:border-salon-gold outline-none bg-transparent"
+                      className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
                       autoComplete="street-address"
                       required
                     />
@@ -897,7 +916,7 @@ export default function BookingPage() {
                       <input
                         value={billingCity}
                         onChange={(e) => setBillingCity(e.target.value)}
-                        className="w-full border-b border-salon-ink/20 py-2 focus:border-salon-gold outline-none bg-transparent"
+                        className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
                         autoComplete="address-level2"
                         required
                       />
@@ -907,7 +926,7 @@ export default function BookingPage() {
                       <input
                         value={billingState}
                         onChange={(e) => setBillingState(e.target.value)}
-                        className="w-full border-b border-salon-ink/20 py-2 focus:border-salon-gold outline-none bg-transparent"
+                        className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
                         autoComplete="address-level1"
                         placeholder="CO"
                         required
@@ -920,7 +939,7 @@ export default function BookingPage() {
                       <input
                         value={billingCountry}
                         onChange={(e) => setBillingCountry(e.target.value.toUpperCase())}
-                        className="w-full border-b border-salon-ink/20 py-2 focus:border-salon-gold outline-none bg-transparent"
+                        className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
                         autoComplete="country"
                         placeholder="US"
                         maxLength={2}
@@ -932,7 +951,7 @@ export default function BookingPage() {
                       <input
                         value={billingPostal}
                         onChange={(e) => setBillingPostal(e.target.value)}
-                        className="w-full border-b border-salon-ink/20 py-2 focus:border-salon-gold outline-none bg-transparent"
+                        className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
                         autoComplete="postal-code"
                         required
                       />
@@ -953,7 +972,7 @@ export default function BookingPage() {
                       <iframe
                         title="Secure card entry"
                         src={paymentTokenizer.iframeSrc}
-                        className="w-full max-w-[600px] border-0 bg-transparent"
+                        className="w-full border-0 bg-transparent"
                         style={{ height: 200, minHeight: 165 }}
                         allow="payment"
                       />
@@ -972,7 +991,7 @@ export default function BookingPage() {
                         <input
                           value={cardAccount}
                           onChange={(e) => setCardAccount(e.target.value)}
-                          className="w-full border-b border-salon-ink/20 py-2 focus:border-salon-gold outline-none bg-transparent"
+                          className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
                           autoComplete="cc-number"
                           inputMode="numeric"
                           required
@@ -986,7 +1005,7 @@ export default function BookingPage() {
                           <input
                             value={cardExpiry}
                             onChange={(e) => setCardExpiry(e.target.value)}
-                            className="w-full border-b border-salon-ink/20 py-2 focus:border-salon-gold outline-none bg-transparent"
+                            className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
                             autoComplete="cc-exp"
                             placeholder="1228"
                             required
@@ -997,7 +1016,7 @@ export default function BookingPage() {
                           <input
                             value={cardCvv}
                             onChange={(e) => setCardCvv(e.target.value)}
-                            className="w-full border-b border-salon-ink/20 py-2 focus:border-salon-gold outline-none bg-transparent"
+                            className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
                             autoComplete="cc-csc"
                             inputMode="numeric"
                             required
@@ -1023,13 +1042,14 @@ export default function BookingPage() {
                   No deposit is required for this service. Submit to confirm your appointment.
                 </p>
               )}
+              </div>
             </div>
 
             <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-between sm:items-center">
               <button
                 type="button"
                 onClick={() => {
-                  setStep('choose');
+                  setStep('details');
                   setMsg(null);
                   idempotencyKeyRef.current = null;
                   setCardToken('');

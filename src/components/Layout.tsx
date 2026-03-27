@@ -49,7 +49,7 @@ export const Header = () => {
     <header
       className={cn(
         'fixed top-0 left-0 w-full z-50 transition-all duration-500',
-        isScrolled ? 'bg-white/95 backdrop-blur-md py-3 shadow-md' : 'bg-transparent py-6'
+        isScrolled ? 'bg-white/95 backdrop-blur-md py-2 shadow-md' : 'bg-transparent py-4'
       )}
     >
       <div className="container mx-auto px-6 flex justify-between items-center">
