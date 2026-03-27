@@ -54,7 +54,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-salon-beige pt-28 pb-20 px-6">
+    <div className="min-h-screen bg-salon-beige pt-36 md:pt-40 pb-20 px-6">
       <div className="max-w-md mx-auto bg-white p-10 shadow-lg border border-salon-ink/5">
         <h1 className="text-2xl font-serif text-salon-ink mb-2">Create account</h1>
         {error && <p className="text-sm text-red-600 mb-4">{error}</p>}

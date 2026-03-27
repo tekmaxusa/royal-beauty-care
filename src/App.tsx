@@ -27,6 +27,45 @@ function AdminIndex() {
   return <Navigate to="/admin/login" replace />;
 }
 
+function AppShell() {
+  const { pathname } = useLocation();
+  const isMerchantRoute = pathname === '/admin' || pathname.startsWith('/admin/');
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      {!isMerchantRoute && <Header />}
+      <div className="flex-grow">
+        <Routes>
+          {/* Royal marketing routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/services/:categoryId" element={<ServiceCategoryDetail />} />
+          <Route path="/gift-packages" element={<GiftPackages />} />
+          <Route path="/special-offers" element={<SpecialOffers />} />
+          <Route path="/gallery" element={<Gallery />} />
+          <Route path="/contact" element={<Contact />} />
+
+          {/* Booking/auth/admin app routes (ported) */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/dashboard" element={<ClientDashboardPage />} />
+          <Route path="/booking" element={<BookingPage />} />
+          <Route path="/admin" element={<AdminIndex />} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin/bookings" element={<AdminBookingsPage />} />
+          <Route path="/admin/users" element={<AdminUsersPage />} />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+      {!isMerchantRoute && <Footer />}
+    </div>
+  );
+}
+
 const routerBasename =
   import.meta.env.BASE_URL === '/' ? undefined : import.meta.env.BASE_URL.replace(/\/$/, '');
 
@@ -37,37 +76,7 @@ export default function App() {
       <BackToTop />
       <AuthProvider>
         <MerchantBookingNotifier />
-        <div className="min-h-screen flex flex-col">
-          <Header />
-          <div className="flex-grow">
-            <Routes>
-              {/* Royal marketing routes */}
-              <Route path="/" element={<Home />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/services" element={<Services />} />
-              <Route path="/services/:categoryId" element={<ServiceCategoryDetail />} />
-              <Route path="/gift-packages" element={<GiftPackages />} />
-              <Route path="/special-offers" element={<SpecialOffers />} />
-              <Route path="/gallery" element={<Gallery />} />
-              <Route path="/contact" element={<Contact />} />
-
-              {/* Booking/auth/admin app routes (ported) */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/dashboard" element={<ClientDashboardPage />} />
-              <Route path="/booking" element={<BookingPage />} />
-              <Route path="/admin" element={<AdminIndex />} />
-              <Route path="/admin/login" element={<AdminLoginPage />} />
-              <Route path="/admin/bookings" element={<AdminBookingsPage />} />
-              <Route path="/admin/users" element={<AdminUsersPage />} />
-
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </div>
-          <Footer />
-        </div>
+        <AppShell />
       </AuthProvider>
     </Router>
   );

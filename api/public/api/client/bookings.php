@@ -110,7 +110,10 @@ if ($isClientSession) {
     $guestEmailNorm = strtolower(trim($guestEmail));
     if ($guestEmailNorm !== '') {
         $pdo = db();
-        $stmt = $pdo->prepare('SELECT 1 FROM users WHERE email = :email LIMIT 1');
+        // Only client accounts should be nudged to sign in; staff/admin rows share the same table.
+        $stmt = $pdo->prepare(
+            "SELECT 1 FROM users WHERE email = :email AND role = 'client' LIMIT 1"
+        );
         $stmt->execute([':email' => $guestEmailNorm]);
         if ($stmt->fetchColumn()) {
             chb_api_json([

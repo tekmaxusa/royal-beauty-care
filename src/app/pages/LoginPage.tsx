@@ -100,7 +100,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-salon-beige pt-28 pb-20 px-6">
+    <div className="min-h-screen bg-salon-beige pt-36 md:pt-40 pb-20 px-6">
       <div className="max-w-md mx-auto bg-white p-10 shadow-lg border border-salon-ink/5">
         <h1 className="text-2xl font-serif text-salon-ink mb-2">Sign in to your account</h1>
         <p className="text-sm text-salon-ink/60 mb-8">Client dashboard, booking requests, and account access.</p>
