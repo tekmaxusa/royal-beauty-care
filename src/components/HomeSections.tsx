@@ -38,7 +38,7 @@ export const Hero = () => {
   const [active, setActive] = useState(0);
 
   useEffect(() => {
-    const id = window.setInterval(() => setActive((i) => (i + 1) % slides.length), 6500);
+    const id = window.setInterval(() => setActive((i) => (i + 1) % slides.length), 9500);
     return () => window.clearInterval(id);
   }, [slides.length]);
 
@@ -57,7 +57,7 @@ export const Hero = () => {
             initial={{ opacity: 0, scale: 1.02 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.02 }}
-            transition={{ duration: 0.9, ease: 'easeOut' }}
+            transition={{ duration: 1.6, ease: 'easeOut' }}
           />
         </AnimatePresence>
         <div className="absolute inset-0 bg-black/45" />
@@ -71,7 +71,7 @@ export const Hero = () => {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -14 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
+            transition={{ duration: 1.0, ease: 'easeOut' }}
           >
             <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-white/70 mb-5">
               {s.eyebrow}
