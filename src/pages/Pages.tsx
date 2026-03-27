@@ -102,7 +102,12 @@ export const GiftPackages = () => {
                 className={`flex flex-col ${index % 2 === 1 ? 'lg:flex-row-reverse' : 'lg:flex-row'} bg-white shadow-xl overflow-hidden group`}
               >
                 <div className="lg:w-1/3 h-80 lg:h-auto overflow-hidden">
-                  <img src={pkg.image} alt={pkg.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  <SafeImage
+                    src={pkg.image}
+                    alt={pkg.title}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    referrerPolicy="no-referrer"
+                  />
                 </div>
                 <div className="lg:w-2/3 p-10 flex flex-col justify-between">
                   <div>
@@ -261,10 +266,11 @@ export const SpecialOffers = () => {
             {SPECIAL_OFFERS.featuredSessions.map((session) => (
               <div key={session.id} className="bg-white group overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-500">
                 <div className="h-64 overflow-hidden">
-                  <img 
-                    src={session.image} 
-                    alt={session.title} 
+                  <SafeImage
+                    src={session.image}
+                    alt={session.title}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    referrerPolicy="no-referrer"
                   />
                 </div>
                 <div className="p-8 text-center">

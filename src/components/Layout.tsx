@@ -12,7 +12,7 @@ const navLinks = [
   { name: 'Services', path: '/services' },
   { name: 'Gift Packages', path: '/gift-packages' },
   { name: 'Special Offers', path: '/special-offers' },
-  { name: 'Contact', path: '/contact' },
+  { name: 'Contact Us', path: '/contact' },
 ];
 
 export const Header = () => {
