@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ArrowRight, Star, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SERVICES, TESTIMONIALS, GALLERY_IMAGES, CONTACT_INFO, SERVICE_CATEGORIES } from '@/src/constants';
-import hoursImg from '@/src/assets/business-hours.png';
 
 export const Hero = () => {
   const slides = useMemo(
@@ -19,14 +18,15 @@ export const Hero = () => {
       {
         id: 'precision',
         image:
-          'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&q=80&w=1920',
+          'https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&q=80&w=1920',
         eyebrow: 'Personalized care',
         title: 'Feel radiant.\nLook effortless.',
         subtitle: 'From advanced skincare to signature services—book your next visit in minutes.',
       },
       {
         id: 'hours',
-        image: hoursImg,
+        image:
+          'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&q=80&w=1920',
         eyebrow: 'Open 6 days a week',
         title: 'Business\nHours',
         subtitle: 'Mon–Sat: 10:00 AM – 7:00 PM · Sun: Closed',
@@ -88,7 +88,7 @@ export const Hero = () => {
                 to="/booking"
                 className="inline-block bg-luxury-gold text-white px-12 py-5 text-xs uppercase tracking-widest hover:bg-white hover:text-luxury-black transition-all duration-300 font-bold shadow-lg"
               >
-                Booking
+                Book Appointment
               </Link>
               <button
                 type="button"

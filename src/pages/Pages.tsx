@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Star, Clock, Info, CheckCircle2, MapPin, Phone, Mail, ArrowRight, ChevronRight } from 'lucide-react';
 import { Hero, ServicesPreview, AboutPreview, TestimonialsSlider } from '@/src/components/HomeSections';
-import { GIFT_PACKAGES, SPECIAL_OFFERS, CONTACT_INFO, SERVICES, SERVICE_CATEGORIES, Service, ServiceCategory } from '@/src/constants';
+import { GIFT_PACKAGES, SPECIAL_OFFERS, CONTACT_INFO, SERVICES, SERVICE_CATEGORIES, GALLERY_IMAGES, Service, ServiceCategory } from '@/src/constants';
 
 export const Home = () => {
   return (
@@ -430,15 +430,12 @@ export const Gallery = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
-              <div key={i} className="overflow-hidden aspect-[4/5] group">
+            {GALLERY_IMAGES.slice(0, 9).map((src, idx) => (
+              <div key={src} className="overflow-hidden aspect-[4/5] group">
                 <img
-                  src={`https://images.unsplash.com/photo-${1500000000000 + i * 1000000}?auto=format&fit=crop&q=80&w=800`}
-                  alt={`Gallery ${i}`}
+                  src={src}
+                  alt={`Gallery ${idx + 1}`}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&q=80&w=800';
-                  }}
                   referrerPolicy="no-referrer"
                 />
               </div>

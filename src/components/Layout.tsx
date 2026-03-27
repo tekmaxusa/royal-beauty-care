@@ -6,7 +6,6 @@ import { cn } from '@/src/lib/utils';
 import { CONTACT_INFO, SERVICE_CATEGORIES } from '@/src/constants';
 import { apiLogout, useAuth } from '@/src/app/context/AuthContext';
 import logoUrl from '@/src/assets/royal-logo.png';
-import businessHoursImg from '@/src/assets/business-hours.png';
 
 const navLinks = [
   { name: 'About Us', path: '/about' },
@@ -59,29 +58,11 @@ export const Header = () => {
             src={logoUrl}
             alt="Royal Beauty Care"
             className={cn(
-              'h-11 w-11 md:h-12 md:w-12 object-contain transition-opacity duration-300',
+              'h-16 w-16 md:h-20 md:w-20 object-contain transition-opacity duration-300',
               isScrolled ? 'opacity-100' : 'opacity-95',
             )}
             loading="eager"
           />
-          <span className="flex flex-col leading-tight">
-            <span
-              className={cn(
-                'text-2xl md:text-[26px] font-serif tracking-[0.18em] uppercase transition-colors duration-300',
-                isScrolled ? 'text-luxury-black' : 'text-white',
-              )}
-            >
-              Royal
-            </span>
-            <span
-              className={cn(
-                'text-[10px] md:text-[11px] tracking-[0.42em] uppercase transition-colors duration-300 -mt-1',
-                isScrolled ? 'text-luxury-gold' : 'text-white/80',
-              )}
-            >
-              Beauty Care
-            </span>
-          </span>
         </Link>
 
         {/* Desktop Nav */}
@@ -199,7 +180,7 @@ export const Header = () => {
                 : "bg-white/20 text-white backdrop-blur-sm border border-white/30 hover:bg-white hover:text-luxury-black"
             )}
           >
-            Booking
+            Book Appointment
           </Link>
         </nav>
 
@@ -317,7 +298,7 @@ export const Header = () => {
                 onClick={() => setIsOpen(false)}
                 className="text-sm uppercase tracking-widest pb-2 border-b border-luxury-beige block text-luxury-black hover:text-luxury-gold transition-colors"
               >
-                Booking
+                Book Appointment
               </Link>
             </nav>
           </motion.div>
@@ -397,12 +378,36 @@ export const Footer = () => {
               </li>
               <li className="pt-2">
                 <div className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-3">Business hours</div>
-                <img
-                  src={businessHoursImg}
-                  alt="Business hours"
-                  className="w-full max-w-[340px] opacity-90"
-                  loading="lazy"
-                />
+                <div className="text-sm text-gray-400 leading-relaxed">
+                  <div className="flex items-center justify-between gap-6">
+                    <span>Monday</span>
+                    <span className="text-white/80">10:00 AM – 7:00 PM</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-6 mt-2">
+                    <span>Tuesday</span>
+                    <span className="text-white/80">10:00 AM – 7:00 PM</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-6 mt-2">
+                    <span>Wednesday</span>
+                    <span className="text-white/80">10:00 AM – 7:00 PM</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-6 mt-2">
+                    <span>Thursday</span>
+                    <span className="text-white/80">10:00 AM – 7:00 PM</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-6 mt-2">
+                    <span>Friday</span>
+                    <span className="text-white/80">10:00 AM – 7:00 PM</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-6 mt-2">
+                    <span>Saturday</span>
+                    <span className="text-white/80">10:00 AM – 7:00 PM</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-6 mt-2">
+                    <span>Sunday</span>
+                    <span className="text-red-400">Closed</span>
+                  </div>
+                </div>
               </li>
             </ul>
           </div>
