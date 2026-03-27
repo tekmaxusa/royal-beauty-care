@@ -51,6 +51,115 @@ function chb_smtp_config(): array
     ];
 }
 
+/**
+ * Domain part of an email address, or empty if invalid.
+ */
+function chb_email_domain_from_address(string $email): string
+{
+    $email = trim($email);
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return '';
+    }
+    $pos = strrpos($email, '@');
+
+    return $pos !== false ? strtolower(substr($email, $pos + 1)) : '';
+}
+
+/**
+ * CONTACT_MAIL_FROM as a bare address (for Message-ID / mail() -f), or empty.
+ */
+function chb_mail_contact_from_email_only(): string
+{
+    $t = chb_env_get('CONTACT_MAIL_FROM', '');
+
+    return ($t !== '' && filter_var($t, FILTER_VALIDATE_EMAIL)) ? $t : '';
+}
+
+/**
+ * Resolve a path under api/ (relative) or pass through absolute paths.
+ */
+function chb_mail_resolve_api_path(string $path): string
+{
+    $path = trim($path);
+    if ($path === '') {
+        return '';
+    }
+    if ($path[0] === '/' || (strlen($path) > 2 && ctype_alpha($path[0]) && $path[1] === ':')) {
+        return $path;
+    }
+    if (str_contains($path, '..')) {
+        return '';
+    }
+
+    return dirname(__DIR__) . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path);
+}
+
+/**
+ * EHLO hostname + Message-ID alignment, optional DKIM, no noisy X-Mailer.
+ */
+function chb_phpmailer_configure_deliverability(\PHPMailer\PHPMailer\PHPMailer $m, array $cfg): void
+{
+    $domain = chb_email_domain_from_address($cfg['from_email']);
+    if ($domain !== '') {
+        $m->Hostname = $domain;
+    }
+
+    // Omit default "PHPMailer … (github…)" — some filters treat it as bulk/script mail.
+    $m->XMailer = null;
+
+    $selector = trim(chb_env_get('SMTP_DKIM_SELECTOR', ''));
+    $keyRel = trim(chb_env_get('SMTP_DKIM_PRIVATE_KEY_FILE', ''));
+    if ($selector === '' || $keyRel === '') {
+        return;
+    }
+
+    $keyPath = chb_mail_resolve_api_path($keyRel);
+    if ($keyPath === '' || !is_readable($keyPath)) {
+        if (chb_env_flag_true('CHB_DEV_MAIL_LOG')) {
+            error_log('CHB_SMTP_DKIM_KEY_UNREADABLE path=' . $keyRel);
+        }
+
+        return;
+    }
+
+    $dkimDomain = trim(chb_env_get('SMTP_DKIM_DOMAIN', ''));
+    if ($dkimDomain === '') {
+        $dkimDomain = $domain;
+    }
+    if ($dkimDomain === '') {
+        return;
+    }
+
+    $m->DKIM_domain = $dkimDomain;
+    $m->DKIM_selector = $selector;
+    $m->DKIM_private = $keyPath;
+    $m->DKIM_identity = $cfg['from_email'];
+}
+
+/**
+ * Optional Message-ID + mail() envelope for the non-SMTP path.
+ *
+ * @return array{0: list<string>, 1: string} headers list and extra mail() params (may be empty)
+ */
+function chb_mail_fallback_headers_and_params(): array
+{
+    $headers = [];
+    $fromAddr = chb_mail_contact_from_email_only();
+    if ($fromAddr !== '') {
+        $domain = chb_email_domain_from_address($fromAddr);
+        if ($domain !== '') {
+            $headers[] = 'Message-ID: <' . bin2hex(random_bytes(8)) . '.' . time() . '@' . $domain . '>';
+        }
+    }
+
+    $extra = '';
+    if ($fromAddr !== '') {
+        $extra = '-f' . $fromAddr;
+    }
+
+    return [$headers, $extra];
+}
+
 function chb_h(string $s): string
 {
     return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -180,6 +289,7 @@ function chb_mail_send_multipart(
             $m->Body = $htmlBody;
             $m->AltBody = $plainBody;
             $m->isHTML(true);
+            chb_phpmailer_configure_deliverability($m, $cfg);
 
             return $m->send();
         } catch (\Throwable $e) {
@@ -201,17 +311,20 @@ function chb_mail_send_multipart(
     $body .= $htmlBody . "\r\n\r\n";
     $body .= '--' . $boundary . "--\r\n";
 
-    $headers = [
-        'MIME-Version: 1.0',
-        'Content-Type: multipart/alternative; boundary="' . $boundary . '"',
-        'Reply-To: ' . $rt,
-        'X-Mailer: PHP/' . PHP_VERSION,
-    ];
+    [$extraHeaders, $mailParams] = chb_mail_fallback_headers_and_params();
+    $headers = array_merge(
+        [
+            'MIME-Version: 1.0',
+            'Content-Type: multipart/alternative; boundary="' . $boundary . '"',
+            'Reply-To: ' . $rt,
+        ],
+        $extraHeaders
+    );
     if ($from !== '') {
         $headers[] = 'From: ' . $from;
     }
 
-    $ok = @mail($to, $encodedSubject, $body, implode("\r\n", $headers));
+    $ok = @mail($to, $encodedSubject, $body, implode("\r\n", $headers), $mailParams);
     if (!$ok && chb_env_flag_true('CHB_DEV_MAIL_LOG')) {
         error_log('CHB_MAIL_SEND_MULTIPART_FAILED to=' . $to . ' subject=' . $subject);
     }
@@ -248,6 +361,7 @@ function chb_mail_send_plain(string $to, string $subject, string $body, string $
             $m->Subject = $subject;
             $m->Body = $body;
             $m->isHTML(false);
+            chb_phpmailer_configure_deliverability($m, $cfg);
 
             return $m->send();
         } catch (\Throwable $e) {
@@ -259,17 +373,20 @@ function chb_mail_send_plain(string $to, string $subject, string $body, string $
     }
 
     $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
-    $headers = [
-        'MIME-Version: 1.0',
-        'Content-Type: text/plain; charset=UTF-8',
-        'X-Mailer: PHP/' . PHP_VERSION,
-        'Reply-To: ' . $rt,
-    ];
+    [$extraHeaders, $mailParams] = chb_mail_fallback_headers_and_params();
+    $headers = array_merge(
+        [
+            'MIME-Version: 1.0',
+            'Content-Type: text/plain; charset=UTF-8',
+            'Reply-To: ' . $rt,
+        ],
+        $extraHeaders
+    );
     if ($from !== '') {
         $headers[] = 'From: ' . $from;
     }
 
-    $ok = @mail($to, $encodedSubject, $body, implode("\r\n", $headers));
+    $ok = @mail($to, $encodedSubject, $body, implode("\r\n", $headers), $mailParams);
     if (!$ok && chb_env_flag_true('CHB_DEV_MAIL_LOG')) {
         error_log('CHB_MAIL_SEND_PLAIN_FAILED to=' . $to . ' subject=' . $subject);
     }
@@ -553,6 +670,58 @@ function chb_send_booking_request_email(
     $html = chb_email_brand_wrap('New confirmed booking — calendar.', $inner, 'merchant', 'New booking confirmed');
 
     return chb_mail_send_multipart($to, $subject, $plain, $html, $clientEmail);
+}
+
+/**
+ * Merchant alert when a logged-in client cancels their own booking from the dashboard.
+ */
+function chb_send_merchant_client_cancelled_booking_email(
+    int $bookingId,
+    string $clientName,
+    string $clientEmail,
+    string $clientPhone,
+    string $dateYmd,
+    string $timeHi,
+    string $servicesSummary
+): bool {
+    $to = chb_contact_recipient_email();
+    if ($to === '') {
+        return false;
+    }
+
+    $clientName = trim($clientName);
+    $clientEmail = trim($clientEmail);
+    $phone = trim($clientPhone) !== '' ? trim($clientPhone) : '—';
+    $servicesSummary = trim($servicesSummary);
+
+    $datePretty = chb_booking_format_date_pretty($dateYmd);
+    $timePretty = chb_booking_format_time_pretty($dateYmd, $timeHi);
+
+    $subject = 'Client cancelled — ' . $datePretty;
+    $plain = "A client cancelled their appointment online.\r\n\r\n";
+    $plain .= 'Booking #' . $bookingId . "\r\n";
+    $plain .= "Client: {$clientName}\r\nEmail: {$clientEmail}\r\nPhone: {$phone}\r\n\r\n";
+    $plain .= "Was scheduled for: {$datePretty} at {$timePretty}\r\n";
+    $plain .= "Services: {$servicesSummary}\r\n";
+
+    $inner = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px;">'
+        . '<tr><td>' . chb_email_badge('Client cancelled', 'warning') . '</td></tr></table>'
+        . '<p style="margin:0 0 16px 0;font-size:18px;line-height:1.55;color:#221913;font-family:Georgia,\'Times New Roman\',serif;">'
+        . 'A client cancelled online</p>'
+        . chb_email_featured_datetime_html($datePretty, $timePretty, 'merchant')
+        . chb_email_detail_rows_html([
+            'Booking #' => (string) $bookingId,
+            'Client' => $clientName !== '' ? $clientName : '—',
+            'Email' => $clientEmail !== '' ? $clientEmail : '—',
+            'Phone' => $phone,
+            'Services' => $servicesSummary !== '' ? $servicesSummary : '—',
+        ], 'merchant');
+
+    $html = chb_email_brand_wrap('Client cancelled an appointment.', $inner, 'merchant', 'Booking cancelled by client');
+
+    $replyTo = filter_var($clientEmail, FILTER_VALIDATE_EMAIL) ? $clientEmail : $to;
+
+    return chb_mail_send_multipart($to, $subject, $plain, $html, $replyTo);
 }
 
 function chb_send_booking_confirmation_to_client_email(

@@ -11,43 +11,171 @@ function booking_service_categories(): array
 {
     return [
         [
-            'id' => 'cut',
-            'name' => 'Cut',
+            'id' => 'skin-care',
+            'name' => 'Skin Care',
             'services' => [
-                ['name' => 'Women', 'price' => '$35+'],
-                ['name' => 'Men', 'price' => '$25+'],
-                ['name' => 'Kids', 'price' => '$25+'],
+                ['name' => 'Basic Facial Cleaning', 'price' => '$95.00 (45-60 Mins)'],
+                ['name' => 'Deep Facial Cleaning', 'price' => '$120.00 (60-75 Mins)'],
+                ['name' => 'Hydrating Facial with Vitamin C', 'price' => '$120.00 (60 Mins)'],
+                ['name' => 'Shahanaz Gold Facial', 'price' => '$125.00 (60-75 Mins)'],
+                ['name' => 'Shahanaz Diamond Facial', 'price' => '$125.00 (60-75 Mins)'],
+                ['name' => 'Microdermabrasion Exfoliation', 'price' => '$135.00 (45-60 Mins)'],
+                ['name' => 'Acne, Facial Extraction & Exfoliating', 'price' => '$145.00 (75 Mins)'],
+                ['name' => 'Anti-Aging Facial', 'price' => '$145.00 (60-75 Mins)'],
+                ['name' => 'LED Facial', 'price' => '$125.00 (60 Mins)'],
+                ['name' => 'Chemical Peel', 'price' => '$175.00-$300.00 (30-45 Mins)'],
+                ['name' => 'Oxygen Infusion Treatment', 'price' => '$165.00 (45-60 Mins)'],
+                ['name' => 'Hydro Facial', 'price' => '$155.00 (60 Mins)'],
+                ['name' => 'Microneedling Treatment', 'price' => '$300.00 (60-90 Mins)'],
+                ['name' => 'Dermaplaning', 'price' => '$150.00 (45 Mins)'],
+                ['name' => 'CO2 Fractional Laser Treatment', 'price' => '$500.00-$800.00 (30-60 Mins)'],
             ],
         ],
         [
-            'id' => 'color',
-            'name' => 'Color',
+            'id' => 'laser-hair-removal',
+            'name' => 'Laser Hair Removal',
             'services' => [
-                ['name' => 'Root', 'price' => '$80+'],
-                ['name' => 'Manicure', 'price' => '$80+'],
-                ['name' => 'Highlight (F)', 'price' => '$200+'],
-                ['name' => 'Highlight (M)', 'price' => '$150+'],
+                ['name' => 'Full Face Treatment', 'price' => '$150.00'],
+                ['name' => 'Lip Treatment', 'price' => '$60.00'],
+                ['name' => 'Chin Treatment', 'price' => '$60.00'],
+                ['name' => 'Cheeks Treatment', 'price' => '$95.00'],
+                ['name' => 'Ears (Both) Treatment', 'price' => '$85.00'],
+                ['name' => 'Sideburns (Both) Treatment', 'price' => '$105.00'],
+                ['name' => 'Neck - Front Treatment', 'price' => '$90.00'],
+                ['name' => 'Neck - Back Treatment', 'price' => '$90.00'],
+                ['name' => 'Nose Treatment', 'price' => '$60.00'],
+                ['name' => 'Forehead Treatment', 'price' => '$60.00'],
+                ['name' => 'Underarms Treatment', 'price' => '$95.00'],
+                ['name' => 'Full Arms Treatment', 'price' => '$200.00'],
+                ['name' => 'Half Arms Treatment', 'price' => '$100.00'],
+                ['name' => 'Fingers & Hands Treatment', 'price' => '$80.00'],
+                ['name' => 'Feet & Toes Treatment', 'price' => '$80.00'],
+                ['name' => 'Shoulders Treatment', 'price' => '$125.00'],
+                ['name' => 'Upper Back Treatment', 'price' => '$125.00'],
+                ['name' => 'Buttocks Treatment', 'price' => '$135.00'],
+                ['name' => 'Lower Back Treatment', 'price' => '$125.00'],
+                ['name' => 'Full Back Treatment', 'price' => '$250.00'],
+                ['name' => 'Chest Treatment', 'price' => '$125.00'],
+                ['name' => 'Abdomen Treatment', 'price' => '$125.00'],
+                ['name' => 'Bikini Treatment', 'price' => '$195.00'],
+                ['name' => 'Brazilian Treatment', 'price' => '$195.00'],
+                ['name' => 'Upper Legs Treatment', 'price' => '$195.00'],
+                ['name' => 'Lower Legs Treatment', 'price' => '$180.00'],
+                ['name' => 'Full Legs Treatment', 'price' => '$275.00'],
+                ['name' => 'Full Body Treatment', 'price' => '$1000.00'],
             ],
         ],
         [
-            'id' => 'perm',
-            'name' => 'Perm',
+            'id' => 'co2-fractional-laser',
+            'name' => 'CO2 Fractional Laser',
             'services' => [
-                ['name' => "Men's Iron Perm", 'price' => '$130+'],
-                ['name' => "Basic Women's Perm", 'price' => '$100+'],
-                ['name' => 'Set / Digital', 'price' => '$200+'],
-                ['name' => 'Magic Setting', 'price' => '$250+'],
-                ['name' => 'Japanese Magic Straight', 'price' => '$230+'],
+                ['name' => 'CO2 Fractional Laser Resurfacing', 'price' => '$500.00-$800.00 (30-60 Mins)'],
             ],
         ],
         [
-            'id' => 'style',
-            'name' => 'Style',
+            'id' => 'injectables-fillers',
+            'name' => 'Injectables & Fillers',
             'services' => [
-                ['name' => 'Shampoo', 'price' => '$20+'],
-                ['name' => 'Blow Dry', 'price' => '$35+'],
-                ['name' => 'Upstyle', 'price' => '$130+'],
-                ['name' => 'Makeup', 'price' => '$150+'],
+                ['name' => 'Botox Cosmetic', 'price' => '$14.00/unit (20-30 Mins)'],
+                ['name' => 'Dermal Fillers (Juvederm)', 'price' => '$500.00/syringe (45-60 Mins)'],
+            ],
+        ],
+        [
+            'id' => 'body-treatments',
+            'name' => 'Body Treatments',
+            'services' => [
+                ['name' => 'Grand Paradise Experience', 'price' => '$146.00 (90 Mins)'],
+                ['name' => 'Signature Brown Sugar Scrub', 'price' => '$70.00 (30 Mins)'],
+                ['name' => 'Signature Body Wrap', 'price' => '$100.00 (60 Mins)'],
+                ['name' => 'Seaweed Detoxifying Body Wrap', 'price' => '$100.00 (60 Mins)'],
+                ['name' => 'Royal Honey Body Wrap', 'price' => '$100.00 (60 Mins)'],
+                ['name' => 'Seasonal Wraps', 'price' => '$100.00 (60 Mins)'],
+            ],
+        ],
+        [
+            'id' => 'permanent-makeup',
+            'name' => 'Permanent Makeup',
+            'services' => [
+                ['name' => '3D Eyebrow (Microblading)', 'price' => '$500.00 (2-3 Hours)'],
+                ['name' => 'Microblading Touch-Up', 'price' => '$250.00 (60-90 Mins)'],
+                ['name' => 'Powder Brow', 'price' => '$500.00 (2-3 Hours)'],
+                ['name' => 'Powder Brow Touch-Up', 'price' => '$250.00 (60-90 Mins)'],
+                ['name' => 'Lash Line Enhancement', 'price' => '$500.00 (90-120 Mins)'],
+                ['name' => 'Lip Blush', 'price' => '$600.00 (2-3 Hours)'],
+            ],
+        ],
+        [
+            'id' => 'threading-services',
+            'name' => 'Threading Services',
+            'services' => [
+                ['name' => 'Eyebrow Threading', 'price' => '$30.00 (15-20 Mins)'],
+                ['name' => 'Upper Lip', 'price' => '$15.00 (10 Mins)'],
+                ['name' => 'Chin', 'price' => '$15.00 (10 Mins)'],
+                ['name' => 'Forehead', 'price' => '$15.00 (15 Mins)'],
+                ['name' => 'Sideburns (Both)', 'price' => '$35.00 (20 Mins)'],
+                ['name' => 'Nose Threading', 'price' => '$15.00 (10 Mins)'],
+                ['name' => 'Full Face', 'price' => '$50.00 (30-45 Mins)'],
+                ['name' => 'Full Face + Neck', 'price' => '$60.00 (45-60 Mins)'],
+            ],
+        ],
+        [
+            'id' => 'waxing-services',
+            'name' => 'Waxing Services',
+            'services' => [
+                ['name' => 'Full Face', 'price' => '$60.00 (30-45 Mins)'],
+                ['name' => 'Full Arms', 'price' => '$60.00 (30 Mins)'],
+                ['name' => 'Under Arms', 'price' => '$30.00 (15 Mins)'],
+                ['name' => 'Full Arm + Under Arm', 'price' => '$80.00 (45 Mins)'],
+                ['name' => 'Half Leg', 'price' => '$60.00 (30 Mins)'],
+                ['name' => 'Full Leg', 'price' => '$100.00 (45-60 Mins)'],
+                ['name' => 'Stomach', 'price' => '$40.00 (15-20 Mins)'],
+                ['name' => 'Back', 'price' => '$40.00 (20-30 Mins)'],
+                ['name' => 'Bikini', 'price' => '$65.00 (20-30 Mins)'],
+                ['name' => 'Neck (Front & Back)', 'price' => '$40.00 (15 Mins)'],
+                ['name' => 'Brazilian Waxing', 'price' => '$120.00 (45-60 Mins)'],
+                ['name' => 'Ear Waxing', 'price' => '$25.00 (15 Mins)'],
+                ['name' => 'Nose Waxing', 'price' => '$25.00 (15 Mins)'],
+                ['name' => 'Full Body Waxing', 'price' => '$300.00 (90-120 Mins)'],
+            ],
+        ],
+        [
+            'id' => 'eyebrow-services',
+            'name' => 'Eyebrow Services',
+            'services' => [
+                ['name' => 'Eyebrow Tinting', 'price' => '$35.00 (20-30 Mins)'],
+                ['name' => 'Eyelash Tinting', 'price' => '$75.00 (30 Mins)'],
+                ['name' => 'Eyelash Lifting', 'price' => '$120.00 (45-60 Mins)'],
+                ['name' => 'Eyelash Lifting + Tinting', 'price' => '$150.00 (75 Mins)'],
+                ['name' => 'Eyebrow Lamination', 'price' => '$105.00 (45 Mins)'],
+            ],
+        ],
+        [
+            'id' => 'eyelash-extensions',
+            'name' => 'Eyelash Extensions',
+            'services' => [
+                ['name' => 'Classic Eyelash Extensions', 'price' => '$150.00 (120 Mins)'],
+                ['name' => 'Volume Lashes', 'price' => '$225.00 (180 Mins)'],
+                ['name' => 'Hybrid Lashes', 'price' => '$185.00 (150 Mins)'],
+                ['name' => 'Lash Refills (2-3 Weeks)', 'price' => 'From $75.00 (60-90 Mins)'],
+                ['name' => 'Lash Lift & Tint', 'price' => '$110.00 (75 Mins)'],
+            ],
+        ],
+        [
+            'id' => 'gentleman-services',
+            'name' => 'Gentleman Services',
+            'services' => [
+                ['name' => "Men's Revitalizing Facial", 'price' => '$105.00 (60 Mins)'],
+                ['name' => "Men's Hair Removal", 'price' => 'From $35.00'],
+                ['name' => 'Executive Manicure', 'price' => '$45.00 (45 Mins)'],
+                ['name' => 'Soothing Back Therapy', 'price' => '$120.00 (60 Mins)'],
+                ['name' => 'Laser Hair Reduction', 'price' => 'Consultation Required'],
+            ],
+        ],
+        [
+            'id' => 'testing',
+            'name' => 'Testing',
+            'services' => [
+                ['name' => 'Test payment ($5)', 'price' => '$5.00'],
             ],
         ],
     ];
@@ -125,10 +253,6 @@ function booking_validate_service_picks($picks): array
         return ['ok' => false, 'error' => 'Please select at least one service.'];
     }
 
-    if (count($lines) > 1) {
-        return ['ok' => false, 'error' => 'Please choose only one service per appointment (one time slot).'];
-    }
-
     return ['ok' => true, 'lines' => $lines];
 }
 
@@ -137,11 +261,10 @@ function booking_validate_service_picks($picks): array
  */
 function booking_parse_price_to_cents(string $price): int
 {
-    $clean = preg_replace('/[^0-9.]/', '', $price);
-    if (!is_string($clean) || $clean === '') {
+    if (!preg_match('/\d+(?:\.\d{1,2})?/', $price, $m)) {
         return 0;
     }
-    $value = (float) $clean;
+    $value = (float) ($m[0] ?? '0');
 
     return (int) round($value * 100);
 }

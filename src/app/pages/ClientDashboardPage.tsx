@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { apiJson } from '../lib/api';
+import { apiFetch, apiJson } from '../lib/api';
 import { apiLogout, useAuth } from '../context/AuthContext';
 import {
   formatBookingDateLabel,
@@ -16,6 +16,8 @@ interface BookingRow {
   booking_time: string;
   status: string;
   created_at: string;
+  /** false = inside minimum notice window (e.g. 24h); omit/true = cancel allowed */
+  cancel_allowed?: boolean;
 }
 
 function serviceLabel(b: BookingRow): string {
@@ -39,6 +41,7 @@ export default function ClientDashboardPage() {
   const { user, loading, refreshMe, setUser } = useAuth();
   const [bookings, setBookings] = useState<BookingRow[] | null>(null);
   const [error, setError] = useState('');
+  const [cancelingId, setCancelingId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -98,6 +101,31 @@ export default function ClientDashboardPage() {
     navigate('/login', { replace: true });
   };
 
+  const onCancelBooking = async (bookingId: number) => {
+    if (!window.confirm('Cancel this appointment?')) return;
+    setError('');
+    setCancelingId(bookingId);
+    try {
+      const res = await apiFetch('/api/client/bookings.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancel', booking_id: bookingId }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        setError(data.error || 'Could not cancel appointment.');
+        return;
+      }
+      setBookings((prev) =>
+        (prev ?? []).map((b) => (b.id === bookingId ? { ...b, status: 'cancelled' } : b))
+      );
+    } catch {
+      setError('Could not cancel appointment.');
+    } finally {
+      setCancelingId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-salon-beige pt-36 md:pt-40 pb-20 px-6">
       <div className="max-w-5xl mx-auto">
@@ -144,6 +172,9 @@ export default function ClientDashboardPage() {
           </h2>
           <p className="text-sm text-salon-ink/60 mb-6">
             New appointments are <strong>confirmed</strong> when you book. If the salon cancels, you will get an email.
+            {' '}
+            You may cancel online at least <strong>24 hours</strong> before your appointment; inside that window, please call
+            the salon.
           </p>
           {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
           {bookings === null ? (
@@ -169,6 +200,7 @@ export default function ClientDashboardPage() {
                     <th className="py-3 pr-4">Date</th>
                     <th className="py-3 pr-4">Time</th>
                     <th className="py-3">Order placed</th>
+                    <th className="py-3 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -185,6 +217,35 @@ export default function ClientDashboardPage() {
                       <td className="py-3 pr-4">{formatBookingDateLabel(b.booking_date)}</td>
                       <td className="py-3 pr-4">{formatBookingTimeLabel(b.booking_time)}</td>
                       <td className="py-3 text-salon-ink/60">{formatBookingPlacedAt(b.created_at)}</td>
+                      <td className="py-3 text-right">
+                        {(() => {
+                          const s = b.status.toLowerCase();
+                          const active = s === 'confirmed' || s === 'pending';
+                          if (!active) {
+                            return <span className="text-xs text-salon-ink/40">—</span>;
+                          }
+                          if (b.cancel_allowed === false) {
+                            return (
+                              <span
+                                className="text-xs text-salon-ink/50 max-w-[140px] inline-block text-right leading-snug"
+                                title="Inside 24-hour cancellation window"
+                              >
+                                Within 24h — call salon
+                              </span>
+                            );
+                          }
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => void onCancelBooking(b.id)}
+                              disabled={cancelingId === b.id}
+                              className="text-xs uppercase tracking-widest text-red-700 hover:text-red-800 disabled:opacity-50"
+                            >
+                              {cancelingId === b.id ? 'Canceling…' : 'Cancel'}
+                            </button>
+                          );
+                        })()}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

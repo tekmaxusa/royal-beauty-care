@@ -53,6 +53,31 @@ function canRefundDeposit(b: BookingRow): boolean {
   return netDepositCents(b) > 0;
 }
 
+type ServiceEntry = {
+  category: string;
+  service: string;
+};
+
+function parseServiceEntries(serviceName: string): ServiceEntry[] {
+  const raw = (serviceName || '').trim();
+  if (!raw) return [{ category: '', service: '—' }];
+  return raw
+    .split(' · ')
+    .map((x) => x.trim())
+    .filter((x) => x !== '')
+    .map((part) => {
+      const sep = ' — ';
+      const idx = part.indexOf(sep);
+      if (idx < 0) {
+        return { category: '', service: part };
+      }
+      return {
+        category: part.slice(0, idx).trim(),
+        service: part.slice(idx + sep.length).trim() || part,
+      };
+    });
+}
+
 export default function AdminBookingsPage() {
   const navigate = useNavigate();
   const { user, loading, refreshMe, setUser } = useAuth();
@@ -370,6 +395,22 @@ export default function AdminBookingsPage() {
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <button
               type="button"
+              disabled={bulkBusy}
+              onClick={() => setSelectedIds(rows.map((r) => r.id))}
+              className="text-xs uppercase tracking-wider px-3 py-2 border border-salon-ink/20 text-salon-ink/70 rounded hover:border-salon-gold hover:text-salon-gold disabled:opacity-40 disabled:cursor-not-allowed w-full sm:w-auto text-center"
+            >
+              Select all ({rows.length})
+            </button>
+            <button
+              type="button"
+              disabled={selectedIds.length === 0 || bulkBusy}
+              onClick={() => setSelectedIds([])}
+              className="text-xs uppercase tracking-wider px-3 py-2 border border-salon-ink/15 text-salon-ink/55 rounded hover:border-salon-gold hover:text-salon-gold disabled:opacity-40 disabled:cursor-not-allowed w-full sm:w-auto text-center"
+            >
+              Clear selection
+            </button>
+            <button
+              type="button"
               disabled={selectedIds.length === 0 || bulkBusy || busyId !== null}
               onClick={() => void bulkDeleteSelected()}
               className="text-xs uppercase tracking-wider px-3 py-2 border border-red-200 text-red-700 rounded hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed w-full sm:w-auto text-center"
@@ -414,7 +455,16 @@ export default function AdminBookingsPage() {
                       <p className="font-medium text-salon-ink break-words">{b.client_name}</p>
                       <p className="text-xs text-salon-ink/50 break-all">{b.client_email}</p>
                     </div>
-                    <p className="text-sm text-salon-ink/80 break-words">{b.service_name}</p>
+                    <div className="space-y-2">
+                      {parseServiceEntries(b.service_name).map((entry, idx) => (
+                        <div key={`${b.id}-mobile-service-${idx}`} className="border border-salon-ink/10 rounded-lg px-3 py-2 bg-salon-ink/[0.02]">
+                          {entry.category && (
+                            <p className="text-[10px] uppercase tracking-wider text-salon-ink/50 mb-1">{entry.category}</p>
+                          )}
+                          <p className="text-sm text-salon-ink/85 leading-snug break-words">{entry.service}</p>
+                        </div>
+                      ))}
+                    </div>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                       <div>
                         <span className="text-[10px] uppercase tracking-wider text-salon-ink/45 block">Date</span>
@@ -464,11 +514,11 @@ export default function AdminBookingsPage() {
         </div>
 
         {/* Wide screens: full table */}
-        <div className="hidden xl:block bg-white border border-salon-ink/5 shadow-sm rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="hidden xl:block bg-white border border-salon-ink/10 shadow-[0_18px_48px_-30px_rgba(0,0,0,0.18)] rounded-2xl overflow-hidden">
+          <table className="w-full text-xs">
             <thead>
-              <tr className="border-b text-left text-[10px] uppercase tracking-widest text-salon-ink/50">
-                <th className="p-3 w-10">
+              <tr className="border-b border-salon-ink/10 text-left text-[10px] uppercase tracking-[0.16em] text-salon-ink bg-salon-ink/[0.02]">
+                <th className="px-3 py-3 w-8">
                   <span className="sr-only">Select</span>
                   <input
                     ref={selectAllRef}
@@ -480,18 +530,18 @@ export default function AdminBookingsPage() {
                     aria-label="Select all bookings on this page"
                   />
                 </th>
-                <th className="p-3">ID</th>
-                <th className="p-3">Status</th>
-                <th className="p-3 w-[14%]">Client</th>
-                <th className="p-3 w-[12%]">Service</th>
-                <th className="p-3">Date</th>
-                <th className="p-3">Time</th>
-                <th className="p-3">Total</th>
-                <th className="p-3">Deposit</th>
-                <th className="p-3">Remaining</th>
-                <th className="p-3">Pay status</th>
-                <th className="p-3 min-w-[140px]">Order placed</th>
-                <th className="p-3">Actions</th>
+                <th className="px-3 py-3">ID</th>
+                <th className="px-3 py-3">Status</th>
+                <th className="px-3 py-3 w-[12%]">Client</th>
+                <th className="px-3 py-3 w-[26%]">Service</th>
+                <th className="px-3 py-3">Date</th>
+                <th className="px-3 py-3">Time</th>
+                <th className="px-3 py-3">Total</th>
+                <th className="px-3 py-3">Deposit</th>
+                <th className="px-3 py-3">Remaining</th>
+                <th className="px-3 py-3">Pay status</th>
+                <th className="px-3 py-3">Order placed</th>
+                <th className="px-3 py-3 w-[84px]">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -502,9 +552,9 @@ export default function AdminBookingsPage() {
                   </td>
                 </tr>
               ) : (
-                paginatedRows.map((b) => (
-                  <tr key={b.id} className="border-b border-salon-ink/5">
-                    <td className="p-3 align-top">
+                paginatedRows.map((b, rowIndex) => (
+                  <tr key={b.id} className={`border-b border-salon-ink/8 align-top ${rowIndex % 2 === 0 ? 'bg-white' : 'bg-salon-ink/[0.012]'}`}>
+                    <td className="px-3 py-3 align-top">
                       <input
                         type="checkbox"
                         className="rounded border-salon-ink/30"
@@ -514,44 +564,55 @@ export default function AdminBookingsPage() {
                         aria-label={`Select booking ${b.id}`}
                       />
                     </td>
-                    <td className="p-3">{b.id}</td>
-                    <td className="p-3 capitalize">{b.status}</td>
-                    <td className="p-3">
+                    <td className="px-3 py-3">{b.id}</td>
+                    <td className="px-3 py-3 capitalize">{b.status}</td>
+                    <td className="px-3 py-3">
                       {b.client_name}
                       <br />
-                      <span className="text-salon-ink/50 text-xs">{b.client_email}</span>
+                      <span className="text-salon-ink text-xs">{b.client_email}</span>
                     </td>
-                    <td className="p-3 break-words">{b.service_name}</td>
-                    <td className="p-3">{b.booking_date}</td>
-                    <td className="p-3">{String(b.booking_time).slice(0, 5)}</td>
-                    <td className="p-3 whitespace-nowrap">{centsToUsd(b.service_total_cents)}</td>
-                    <td className="p-3 whitespace-nowrap">
+                    <td className="px-3 py-3 align-top">
+                      <div className="space-y-2">
+                        {parseServiceEntries(b.service_name).map((entry, idx) => (
+                          <div key={`${b.id}-svc-${idx}`} className="rounded-lg border border-salon-ink/10 bg-salon-ink/[0.018] px-2.5 py-2">
+                            {entry.category && (
+                              <p className="text-[10px] uppercase tracking-[0.13em] text-salon-ink mb-1">{entry.category}</p>
+                            )}
+                            <p className="leading-snug whitespace-normal break-words text-salon-ink text-[13px]">{entry.service}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">{b.booking_date}</td>
+                    <td className="px-3 py-3">{String(b.booking_time).slice(0, 5)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap">{centsToUsd(b.service_total_cents)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap">
                       <span>{centsToUsd(netDepositCents(b))}</span>
                       {Number(b.deposit_refunded_cents || 0) > 0 && (
-                        <span className="block text-[10px] text-salon-ink/45">
+                        <span className="block text-[10px] text-salon-ink">
                           refunded {centsToUsd(Number(b.deposit_refunded_cents || 0))}
                         </span>
                       )}
                     </td>
-                    <td className="p-3 whitespace-nowrap">
+                    <td className="px-3 py-3 whitespace-nowrap">
                       {centsToUsd(
                         Math.max(0, Number(b.service_total_cents || 0) - netDepositCents(b)),
                       )}
                     </td>
-                    <td className="p-3 capitalize">
+                    <td className="px-3 py-3 capitalize">
                       {(b.payment_status || 'none').replace(/_/g, ' ')}
                     </td>
-                    <td className="p-3 text-salon-ink/60 text-xs whitespace-nowrap">
+                    <td className="px-3 py-3 text-salon-ink text-[11px] whitespace-nowrap">
                       {formatBookingPlacedAt(b.created_at)}
                     </td>
-                    <td className="p-3 align-top">
-                      <div className="flex flex-col gap-2 min-w-[9.5rem]">
+                    <td className="px-3 py-3 align-top">
+                      <div className="flex flex-col gap-2">
                         {(b.status === 'confirmed' || b.status === 'pending') && (
                           <button
                             type="button"
                             disabled={busyId === b.id}
                             onClick={() => void actCancel(b)}
-                            className="inline-flex justify-center items-center w-full px-3 py-2 rounded-lg border border-red-200 bg-white text-red-700 text-[11px] font-semibold uppercase tracking-wide shadow-sm hover:bg-red-50 hover:border-red-300 hover:shadow transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-sm"
+                            className="inline-flex justify-center items-center w-full px-2 py-1.5 rounded border border-red-200 bg-white text-red-700 text-[10px] font-semibold uppercase tracking-wide shadow-sm hover:bg-red-50 hover:border-red-300 hover:shadow transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-sm whitespace-nowrap"
                           >
                             Cancel
                           </button>

@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { motion } from 'motion/react';
 import { Star, Clock, Info, CheckCircle2, MapPin, Phone, Mail, ArrowRight, ChevronRight } from 'lucide-react';
 import { Hero, ServicesPreview, AboutPreview, TestimonialsSlider } from '@/src/components/HomeSections';
-import { GIFT_PACKAGES, SPECIAL_OFFERS, CONTACT_INFO, SERVICES, SERVICE_CATEGORIES, GALLERY_IMAGES, Service, ServiceCategory } from '@/src/constants';
+import { GIFT_PACKAGES, SPECIAL_OFFERS, CONTACT_INFO, SERVICES, SERVICE_CATEGORIES, GALLERY_IMAGES } from '@/src/constants';
+import { buildBookingLinkFromServicePage } from '@/src/lib/bookingDeepLink';
 import { SafeImage } from '@/src/components/SafeImage';
 
 export const Home = () => {
@@ -93,12 +93,8 @@ export const GiftPackages = () => {
 
           <div className="grid grid-cols-1 gap-12">
             {GIFT_PACKAGES.map((pkg, index) => (
-              <motion.div 
+              <div 
                 key={pkg.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
                 className={`flex flex-col ${index % 2 === 1 ? 'lg:flex-row-reverse' : 'lg:flex-row'} bg-white shadow-xl overflow-hidden group`}
               >
                 <div className="lg:w-1/3 h-80 lg:h-auto overflow-hidden">
@@ -137,7 +133,7 @@ export const GiftPackages = () => {
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -159,11 +155,7 @@ export const SpecialOffers = () => {
           />
         </div>
         <div className="container mx-auto px-6 relative z-10 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
+          <div>
             <span className="text-luxury-gold uppercase tracking-[0.4em] text-xs mb-4 block">
               {SPECIAL_OFFERS.holidaySpecials.subtitle}
             </span>
@@ -174,20 +166,20 @@ export const SpecialOffers = () => {
               Exclusive Specials
             </h2>
             <div className="flex justify-center space-x-8 text-white/60 mb-8">
-              <motion.div whileHover={{ scale: 1.2, color: '#D4AF37' }} className="cursor-default">
+              <div className="cursor-default">
                 <Star size={24} />
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.2, color: '#D4AF37' }} className="cursor-default">
+              </div>
+              <div className="cursor-default">
                 <Star size={24} />
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.2, color: '#D4AF37' }} className="cursor-default">
+              </div>
+              <div className="cursor-default">
                 <Star size={24} />
-              </motion.div>
+              </div>
             </div>
             <p className="text-white/80 max-w-2xl mx-auto text-lg font-light tracking-wide">
               {SPECIAL_OFFERS.holidaySpecials.description}
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -201,12 +193,8 @@ export const SpecialOffers = () => {
           
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8">
             {SPECIAL_OFFERS.holidaySpecials.treats.map((treat, index) => (
-              <motion.div
+              <div
                 key={treat}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.05 }}
                 className="flex flex-col items-center text-center group"
               >
                 <div className="w-12 h-12 rounded-full bg-[#1a3a2a] text-luxury-gold flex items-center justify-center mb-4 font-serif text-lg group-hover:bg-luxury-gold group-hover:text-white transition-colors duration-300">
@@ -215,7 +203,7 @@ export const SpecialOffers = () => {
                 <p className="text-[10px] uppercase tracking-widest text-gray-500 leading-tight">
                   {treat}
                 </p>
-              </motion.div>
+              </div>
             ))}
           </div>
 
@@ -278,9 +266,12 @@ export const SpecialOffers = () => {
                   <p className="text-sm text-gray-500 mb-8 leading-relaxed">
                     {session.description}
                   </p>
-                  <button className="text-[10px] uppercase tracking-[0.2em] border-b border-luxury-gold pb-1 hover:text-luxury-gold transition-colors">
+                  <Link
+                    to="/booking"
+                    className="inline-block text-[10px] uppercase tracking-[0.2em] border-b border-luxury-gold pb-1 hover:text-luxury-gold transition-colors"
+                  >
                     Book Appointment
-                  </button>
+                  </Link>
                 </div>
               </div>
             ))}
@@ -298,34 +289,25 @@ export const Services = () => {
       <section className="text-center py-24 bg-[#F9F6F2] relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
         <div className="container mx-auto px-6 relative z-10">
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+          <h1
             className="font-serif text-5xl md:text-7xl text-luxury-black mb-6 tracking-tight font-bold"
           >
             Discover Your <span className="text-luxury-gold italic">Beauty Ritual</span>
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+          </h1>
+          <p
             className="text-gray-500 italic max-w-2xl mx-auto text-xl font-light leading-relaxed"
           >
             From clinical treatments to luxury spa experiences, explore our full range of aesthetic services.
-          </motion.p>
+          </p>
         </div>
       </section>
 
       {/* Services Grid */}
       <section className="py-24 px-6 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {SERVICE_CATEGORIES.slice(0, 8).map((category, index) => (
-            <motion.div
+          {SERVICE_CATEGORIES.slice(0, 8).map((category) => (
+            <div
               key={category.name}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
               className="group relative h-[450px] overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-500 flex flex-col justify-end"
             >
               <div className="absolute inset-0 z-0">
@@ -347,7 +329,7 @@ export const Services = () => {
                   Explore Now <ArrowRight size={14} className="ml-2" />
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>
@@ -361,17 +343,13 @@ export const Services = () => {
           </div>
 
           <div className="space-y-24">
-            {SERVICE_CATEGORIES.map((category, catIndex) => {
+            {SERVICE_CATEGORIES.map((category) => {
               const categoryServices = SERVICES.filter(s => s.category === category.name);
               if (categoryServices.length === 0) return null;
 
               return (
-                <motion.div 
+                <div 
                   key={category.name}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: catIndex * 0.1 }}
                   className="max-w-4xl mx-auto"
                 >
                   <div className="flex items-center gap-6 mb-12">
@@ -392,7 +370,7 @@ export const Services = () => {
                       </div>
                     ))}
                   </div>
-                </motion.div>
+                </div>
               );
             })}
           </div>
@@ -403,10 +381,7 @@ export const Services = () => {
       <section className="py-24 bg-luxury-black text-white text-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
         <div className="container mx-auto px-6 relative z-10">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
+          <div
             className="max-w-3xl mx-auto border border-white/10 p-16 rounded-2xl backdrop-blur-sm"
           >
             <h2 className="text-4xl md:text-5xl font-serif mb-8 text-luxury-gold">Ready for Your Transformation?</h2>
@@ -414,12 +389,12 @@ export const Services = () => {
               Book a consultation with our experts to create a personalized beauty ritual tailored to your unique needs.
             </p>
             <Link 
-              to="/contact" 
+              to="/booking" 
               className="inline-block bg-luxury-gold text-white px-12 py-4 rounded-full text-sm uppercase tracking-widest font-bold hover:bg-white hover:text-luxury-black transition-all duration-300 shadow-xl"
             >
               Book Your Consultation
             </Link>
-          </motion.div>
+          </div>
         </div>
       </section>
     </main>
@@ -483,16 +458,13 @@ export const ServiceCategoryDetail = () => {
         />
         <div className="absolute inset-0 bg-black/50" />
         <div className="relative z-10 text-center text-white px-6 max-w-4xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <div>
             <span className="text-xs uppercase tracking-[0.4em] text-luxury-gold mb-4 block font-bold">Premium Treatment</span>
             <h1 className="text-5xl md:text-8xl font-serif mb-6">{category.name}</h1>
             <p className="text-xl font-light italic text-gray-200 leading-relaxed">
               {category.description}
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -509,10 +481,7 @@ export const ServiceCategoryDetail = () => {
             </div>
 
             {category.intro && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+              <div
                 className="mb-24"
               >
                 <div className="text-center max-w-3xl mx-auto mb-16">
@@ -540,18 +509,14 @@ export const ServiceCategoryDetail = () => {
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </div>
             )}
 
             <div className="space-y-16">
               {categoryServices.length > 0 ? (
-                categoryServices.map((service, index) => (
-                  <motion.div 
+                categoryServices.map((service) => (
+                  <div 
                     key={service.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1 }}
                     className="flex flex-col md:flex-row gap-12 items-start group"
                   >
                     <div className="w-full md:w-1/3 aspect-[4/3] overflow-hidden rounded-sm shadow-lg">
@@ -579,13 +544,13 @@ export const ServiceCategoryDetail = () => {
                         </p>
                       </div>
                       <Link 
-                        to="/contact" 
+                        to={buildBookingLinkFromServicePage(categoryId ?? '', service)} 
                         className="inline-block bg-luxury-black text-white px-10 py-4 text-[10px] uppercase tracking-widest hover:bg-luxury-gold transition-all duration-300 w-fit"
                       >
                         Book Appointment
                       </Link>
                     </div>
-                  </motion.div>
+                  </div>
                 ))
               ) : (
                 <div className="text-center py-20 bg-luxury-beige/30 rounded-sm">
@@ -595,10 +560,7 @@ export const ServiceCategoryDetail = () => {
             </div>
 
             {category.instructions && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+              <div
                 className="mt-24 p-12 bg-luxury-beige/20 border border-luxury-beige/30 rounded-sm"
               >
                 <h3 className="text-3xl font-serif mb-12 text-luxury-black text-center">Therapy Instructions</h3>
@@ -640,7 +602,7 @@ export const ServiceCategoryDetail = () => {
                     </p>
                   </div>
                 )}
-              </motion.div>
+              </div>
             )}
           </div>
         </div>

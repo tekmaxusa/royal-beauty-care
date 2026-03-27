@@ -276,6 +276,58 @@ function chb_cardconnect_void(string $retref, int $amountCents): array
 }
 
 /**
+ * CSS for the hosted iframe tokenizer: inline/urlencoded `css=` works; external URLs are fetched by CardConnect
+ * and may fail sanitizer with "CSS result is empty" (500).
+ *
+ * Priority: CARDCONNECT_TOKENIZER_CSS → CARDCONNECT_TOKENIZER_CSS_FILE → bundled public/cardconnect-tokenizer.css
+ * Fallback: CARDCONNECT_TOKENIZER_CSS_URL (legacy; may still hit sanitizer issues).
+ *
+ * @return string|null Non-empty CSS text, or null to skip / use URL fallback.
+ */
+function chb_cardconnect_tokenizer_inline_css(): ?string
+{
+    $inline = trim((string) (getenv('CARDCONNECT_TOKENIZER_CSS') ?: ''));
+    if ($inline !== '') {
+        return $inline;
+    }
+
+    $apiRoot = realpath(dirname(__DIR__));
+    if ($apiRoot === false) {
+        return null;
+    }
+
+    $fileRel = trim((string) (getenv('CARDCONNECT_TOKENIZER_CSS_FILE') ?: ''));
+    $candidates = [];
+    if ($fileRel !== '') {
+        $candidates[] = $fileRel;
+    } else {
+        $candidates[] = 'public/cardconnect-tokenizer.css';
+    }
+
+    foreach ($candidates as $rel) {
+        $rel = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $rel);
+        $rel = ltrim($rel, DIRECTORY_SEPARATOR);
+        if (str_contains($rel, '..')) {
+            continue;
+        }
+        $full = $apiRoot . DIRECTORY_SEPARATOR . $rel;
+        if (!is_readable($full)) {
+            continue;
+        }
+        $raw = file_get_contents($full);
+        if (!is_string($raw) || trim($raw) === '') {
+            continue;
+        }
+        // Single-line for query string; CardConnect sanitizer accepts minified rules.
+        $css = trim((string) preg_replace('/\s+/', ' ', $raw));
+
+        return $css;
+    }
+
+    return null;
+}
+
+/**
  * Hosted iFrame Tokenizer (CardConnect) — card data stays in the iframe origin; parent receives a token via postMessage.
  *
  * @return array{iframeSrc:string,allowedOrigin:string}|null
@@ -294,7 +346,17 @@ function chb_cardconnect_hosted_tokenizer_meta(): ?array
     $allowedOrigin = $parts['scheme'] . '://' . $parts['host'];
     $extra = trim((string) (getenv('CARDCONNECT_TOKENIZER_QUERY') ?: ''));
     $extra = ltrim($extra, '?&');
-    $q = 'sendcssloadedevent=true&useexpiry=true&usecvv=true';
+    $q = 'sendcssloadedevent=true&useexpiry=true&usecvv=true&formatinput=true';
+
+    $inlineCss = chb_cardconnect_tokenizer_inline_css();
+    if ($inlineCss !== null && $inlineCss !== '') {
+        $q .= '&css=' . rawurlencode($inlineCss);
+    } else {
+        $cssUrl = trim((string) (getenv('CARDCONNECT_TOKENIZER_CSS_URL') ?: ''));
+        if ($cssUrl !== '') {
+            $q .= '&css=' . rawurlencode($cssUrl);
+        }
+    }
     if ($extra !== '') {
         $q .= '&' . $extra;
     }

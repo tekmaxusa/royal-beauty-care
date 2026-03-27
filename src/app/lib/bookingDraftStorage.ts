@@ -6,6 +6,7 @@ export type BookingDraft = {
   v: 1;
   step: BookingDraftStep;
   selectedService: string | null;
+  selectedServices?: string[];
   date: string;
   time: string;
   guestName: string;
@@ -41,10 +42,16 @@ export function consumeBookingDraft(): BookingDraft | null {
     const step: BookingDraftStep = o.step === 'review' ? 'review' : 'choose';
     const sel = o.selectedService;
     const selectedService = typeof sel === 'string' ? sel : null;
+    const selectedServices = Array.isArray(o.selectedServices)
+      ? o.selectedServices.filter((x): x is string => typeof x === 'string' && x.trim() !== '')
+      : selectedService
+        ? [selectedService]
+        : [];
     return {
       v: 1,
       step,
       selectedService,
+      selectedServices,
       date: typeof o.date === 'string' ? o.date : '',
       time: typeof o.time === 'string' ? o.time : '',
       guestName: typeof o.guestName === 'string' ? o.guestName : '',

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, Lock, ShieldCheck, User } from 'lucide-react';
 import { apiFetch, apiJson } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +11,8 @@ import {
   SALON_LOCATION_PHONE,
 } from '../lib/salonVenue';
 import { clearBookingDraft, consumeBookingDraft, persistBookingDraft } from '../lib/bookingDraftStorage';
+import { matchBookingServiceName } from '@/src/lib/bookingDeepLink';
+import logoUrl from '@/src/assets/royal-logo.png';
 
 interface Category {
   id: string;
@@ -21,9 +23,11 @@ interface Category {
 interface SlotCell {
   time: string;
   state: 'available' | 'booked' | 'past';
+  /** Optional: parallel capacity hint from API */
+  remaining?: number;
 }
 
-type Step = 'service' | 'time' | 'details' | 'review' | 'success';
+type Step = 'booking' | 'payment' | 'success';
 
 function parsePriceToCents(price: string): number {
   const clean = price.replace(/[^0-9.]/g, '').trim();
@@ -54,6 +58,18 @@ function formatTimeHm(hm: string): string {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
+/** e.g. "MARCH 28" for slot headings */
+function formatSlotsHeadingDate(ymd: string): string {
+  const [y, m, d] = ymd.split('-').map((x) => parseInt(x, 10));
+  if (!y || !m || !d) return '';
+  const dt = new Date(y, m - 1, d);
+  if (Number.isNaN(dt.getTime())) return '';
+  return dt
+    .toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+    .replace(',', '')
+    .toUpperCase();
+}
+
 /** booking-meta `paymentBypass` — accept bool, 1, or string (some proxies alter JSON). */
 function parsePaymentBypassFlag(v: unknown): boolean {
   if (v === true || v === 1) return true;
@@ -78,6 +94,100 @@ function randomBookingIdempotencyKey(): string {
 interface PaymentTokenizerMeta {
   iframeSrc: string;
   allowedOrigin: string;
+}
+
+type BookingSummaryRow = {
+  key: string;
+  category: string;
+  name: string;
+  priceLabel: string;
+  priceCents: number;
+};
+
+function BookingSummaryAndPolicies({
+  selectedServiceRows,
+  date,
+  time,
+  therapist,
+  selectedServicePriceCents,
+}: {
+  selectedServiceRows: BookingSummaryRow[];
+  date: string;
+  time: string;
+  therapist: string;
+  selectedServicePriceCents: number;
+}) {
+  return (
+    <>
+      <div className="rounded-2xl bg-white border border-salon-ink/10 shadow-[0_20px_50px_-30px_rgba(0,0,0,0.18)] overflow-hidden">
+        <div className="h-40 bg-[url('https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=1200')] bg-cover bg-center relative">
+          <div className="absolute inset-0 bg-black/20" />
+        </div>
+        <div className="p-6">
+          <h3 className="font-serif text-lg text-salon-ink mb-4">Booking Summary</h3>
+          <div className="space-y-4 text-sm">
+            <div className="flex gap-3">
+              <span className="mt-0.5 text-salon-gold">
+                <Check className="w-4 h-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] uppercase tracking-widest text-salon-ink/50">Service</div>
+                {selectedServiceRows.length > 0 ? (
+                  <div className="space-y-2 mt-1">
+                    {selectedServiceRows.map((row) => (
+                      <div key={row.key} className="flex items-start justify-between gap-3">
+                        <div className="text-salon-ink leading-snug">{row.name}</div>
+                        <div className="text-salon-gold font-medium whitespace-nowrap">{formatUsd(row.priceCents)}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-salon-ink">Please add at least one service</div>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <span className="mt-0.5 text-salon-gold">
+                <CalendarDays className="w-4 h-4" />
+              </span>
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-salon-ink/50">Date & time</div>
+                <div className="text-salon-ink">
+                  {date ? `${formatYmdLong(date)}${time ? ` at ${formatTimeHm(time)}` : ''}` : '—'}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <span className="mt-0.5 text-salon-gold">
+                <User className="w-4 h-4" />
+              </span>
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-salon-ink/50">Therapist</div>
+                <div className="text-salon-ink italic">{therapist}</div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-5 pt-4 border-t border-salon-ink/10 flex items-center justify-between">
+            <div className="text-salon-ink font-medium">Total Price</div>
+            <div className="text-salon-gold text-2xl font-semibold">{formatUsd(selectedServicePriceCents)}</div>
+          </div>
+          <div className="mt-6 text-xs text-salon-ink/45 text-right italic">*Payment due at time of service</div>
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-2xl bg-[#0b1626] text-white p-6 shadow-[0_28px_70px_-45px_rgba(0,0,0,0.4)]">
+        <div className="flex items-center justify-between">
+          <h4 className="font-serif text-lg">Important Policies</h4>
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80">i</span>
+        </div>
+        <ul className="mt-5 space-y-3 text-sm text-white/80">
+          <li>Please arrive 15 minutes prior to your appointment time to complete necessary forms.</li>
+          <li>Cancellations made less than 24 hours in advance may be subject to a cancellation fee.</li>
+          <li>To maintain our serene environment, please silence your mobile devices.</li>
+        </ul>
+      </div>
+    </>
+  );
 }
 
 function ReviewSection({ label, children }: { label: string; children: React.ReactNode }) {
@@ -106,7 +216,7 @@ function StepPill({ n, label, active }: { n: number; label: string; active: bool
 
 export default function BookingPage() {
   const navigate = useNavigate();
-  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -119,9 +229,10 @@ export default function BookingPage() {
   /** CardConnect Hosted iFrame Tokenizer (from booking-meta). */
   const [paymentTokenizer, setPaymentTokenizer] = useState<PaymentTokenizerMeta | null>(null);
 
-  const [step, setStep] = useState<Step>('service');
-  /** Single pick: `categoryId|serviceName` */
-  const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [step, setStep] = useState<Step>('booking');
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [activeCategoryId, setActiveCategoryId] = useState('');
+  const [activeServiceName, setActiveServiceName] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [guestFirstName, setGuestFirstName] = useState('');
@@ -143,6 +254,7 @@ export default function BookingPage() {
   const [cardToken, setCardToken] = useState('');
   const [tokenizerCssLoaded, setTokenizerCssLoaded] = useState(false);
   const idempotencyKeyRef = useRef<string | null>(null);
+  const draftInitDoneRef = useRef(false);
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string; code?: string } | null>(null);
 
@@ -163,18 +275,19 @@ export default function BookingPage() {
   const guestName = useMemo(() => `${guestFirstName} ${guestLastName}`.trim(), [guestFirstName, guestLastName]);
 
   const persistDraftBeforeSignIn = useCallback(() => {
-    const stepToSave: 'choose' | 'review' = step === 'review' ? 'review' : 'choose';
+    const stepToSave: 'choose' | 'review' = step === 'payment' ? 'review' : 'choose';
     persistBookingDraft({
       v: 1,
       step: stepToSave,
-      selectedService,
+      selectedService: selectedServices[0] ?? null,
+      selectedServices,
       date,
       time,
       guestName,
       guestEmail,
       guestPhone,
     });
-  }, [step, selectedService, date, time, guestName, guestEmail, guestPhone]);
+  }, [step, selectedServices, date, time, guestName, guestEmail, guestPhone]);
 
   const availableDates = useMemo(() => {
     return Object.keys(slotsByDate)
@@ -208,34 +321,12 @@ export default function BookingPage() {
           setPaymentTokenizer(null);
         }
         const dates = Object.keys(s).sort();
-
-        const draft = consumeBookingDraft();
-        if (draft) {
-          const parts = (draft.guestName ?? '').trim().split(/\s+/);
-          setGuestFirstName(parts[0] ?? '');
-          setGuestLastName(parts.slice(1).join(' '));
-          setGuestEmail(draft.guestEmail);
-          setGuestPhone(draft.guestPhone);
-
-          const [cid, sname] = (draft.selectedService ?? '').split('|');
-          const cat = cats.find((c) => c.id === cid);
-          const serviceOk =
-            Boolean(draft.selectedService) && Boolean(cat?.services.some((x) => x.name === sname));
-          setSelectedService(serviceOk ? draft.selectedService : null);
-
-          const nextDate = draft.date && s[draft.date] ? draft.date : dates[0] || '';
-          setDate(nextDate);
-          const cells = s[nextDate] ?? [];
-          const nextTime =
-            draft.time && cells.some((c) => c.time === draft.time && c.state === 'available') ? draft.time : '';
-          setTime(nextTime);
-
-          const canReview =
-            draft.step === 'review' && serviceOk && Boolean(nextDate) && Boolean(nextTime);
-          setStep(canReview ? 'review' : 'service');
-        } else {
-          setDate((prev) => (prev && s[prev] ? prev : dates[0] || ''));
-        }
+        const defaultCategoryId = (cats[0]?.id ?? '').trim();
+        const defaultServiceName = (cats[0]?.services?.[0]?.name ?? '').trim();
+        setActiveCategoryId(defaultCategoryId);
+        setActiveServiceName(defaultServiceName);
+        setDate(dates[0] || '');
+        setTime('');
       } catch {
         setMetaError('Could not load booking options.');
       } finally {
@@ -244,16 +335,91 @@ export default function BookingPage() {
     })();
   }, []);
 
-  const preselect = (location.state as { preselectCategory?: string } | null)?.preselectCategory;
+  /** Deep link ?cat=&service= from marketing pages, or restore draft after login (only when no cat query). */
   useEffect(() => {
-    if (!preselect || categories.length === 0) return;
-    const el = document.getElementById(`booking-cat-${preselect}`);
-    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [preselect, categories]);
+    if (metaLoading || categories.length === 0) return;
 
-  const pickService = (catId: string, svcName: string) => {
-    const key = `${catId}|${svcName}`;
-    setSelectedService((prev) => (prev === key ? null : key));
+    const catParam = searchParams.get('cat');
+    const serviceParam = searchParams.get('service');
+
+    if (catParam) {
+      const cat = categories.find((c) => c.id === catParam);
+      if (cat) {
+        const requested = serviceParam ? decodeURIComponent(serviceParam) : '';
+        const matched = matchBookingServiceName(cat, requested);
+        setActiveCategoryId(cat.id);
+        setActiveServiceName(matched ?? cat.services[0]?.name ?? '');
+        setSelectedServices(matched ? [`${cat.id}|${matched}`] : []);
+        const dates = Object.keys(slotsByDate).sort();
+        const nextDate = dates[0] || '';
+        setDate(nextDate);
+        setTime('');
+        setStep('booking');
+      }
+      return;
+    }
+
+    if (draftInitDoneRef.current) return;
+    draftInitDoneRef.current = true;
+
+    const draft = consumeBookingDraft();
+    if (draft) {
+      const parts = (draft.guestName ?? '').trim().split(/\s+/);
+      setGuestFirstName(parts[0] ?? '');
+      setGuestLastName(parts.slice(1).join(' '));
+      setGuestEmail(draft.guestEmail);
+      setGuestPhone(draft.guestPhone);
+
+      const draftKeys = (draft.selectedServices ?? (draft.selectedService ? [draft.selectedService] : []))
+        .filter((x) => typeof x === 'string' && x.trim() !== '')
+        .filter((key, idx, arr) => arr.indexOf(key) === idx);
+      const validated = draftKeys.filter((key) => {
+        const [cid, sname] = key.split('|');
+        const c = categories.find((k) => k.id === cid);
+        return Boolean(c?.services.some((x) => x.name === sname));
+      });
+      setSelectedServices(validated);
+
+      const dates = Object.keys(slotsByDate).sort();
+      const nextDate = draft.date && slotsByDate[draft.date] ? draft.date : dates[0] || '';
+      setDate(nextDate);
+      const cells = slotsByDate[nextDate] ?? [];
+      const nextTime =
+        draft.time && cells.some((c) => c.time === draft.time && c.state === 'available') ? draft.time : '';
+      setTime(nextTime);
+
+      const canPayment =
+        draft.step === 'review' && validated.length > 0 && Boolean(nextDate) && Boolean(nextTime);
+      setStep(canPayment ? 'payment' : 'booking');
+    } else {
+      setDate((prev) => (prev && slotsByDate[prev] ? prev : Object.keys(slotsByDate).sort()[0] || ''));
+    }
+  }, [metaLoading, categories, searchParams, slotsByDate]);
+
+  const activeCategory = useMemo(() => {
+    return categories.find((c) => c.id === activeCategoryId) ?? null;
+  }, [categories, activeCategoryId]);
+
+  useEffect(() => {
+    if (!activeCategory && categories.length > 0) {
+      setActiveCategoryId(categories[0].id);
+      setActiveServiceName(categories[0].services[0]?.name ?? '');
+      return;
+    }
+    if (!activeCategory) return;
+    if (!activeCategory.services.some((s) => s.name === activeServiceName)) {
+      setActiveServiceName(activeCategory.services[0]?.name ?? '');
+    }
+  }, [activeCategory, categories, activeServiceName]);
+
+  const addActiveService = () => {
+    if (!activeCategoryId || !activeServiceName) return;
+    const key = `${activeCategoryId}|${activeServiceName}`;
+    setSelectedServices((prev) => (prev.includes(key) ? prev : [...prev, key]));
+  };
+
+  const removeSelectedService = (key: string) => {
+    setSelectedServices((prev) => prev.filter((x) => x !== key));
   };
 
   const timesForDate = date ? slotsByDate[date] ?? [] : [];
@@ -265,19 +431,23 @@ export default function BookingPage() {
   }, [date, time, timesForDate]);
 
   const serviceSummaryLines = useMemo(() => {
-    if (!selectedService) return [];
-    const [catId, svcName] = selectedService.split('|');
-    const cat = categories.find((c) => c.id === catId);
-    return cat ? [`${cat.name} — ${svcName}`] : [];
-  }, [selectedService, categories]);
+    return selectedServices
+      .map((key) => {
+        const [catId, svcName] = key.split('|');
+        const cat = categories.find((c) => c.id === catId);
+        return cat ? `${cat.name} — ${svcName}` : '';
+      })
+      .filter((x) => x !== '');
+  }, [selectedServices, categories]);
 
   const selectedServicePriceCents = useMemo(() => {
-    if (!selectedService) return 0;
-    const [catId, svcName] = selectedService.split('|');
-    const cat = categories.find((c) => c.id === catId);
-    const svc = cat?.services.find((s) => s.name === svcName);
-    return svc ? parsePriceToCents(svc.price) : 0;
-  }, [selectedService, categories]);
+    return selectedServices.reduce((sum, key) => {
+      const [catId, svcName] = key.split('|');
+      const cat = categories.find((c) => c.id === catId);
+      const svc = cat?.services.find((s) => s.name === svcName);
+      return sum + (svc ? parsePriceToCents(svc.price) : 0);
+    }, 0);
+  }, [selectedServices, categories]);
 
   const depositDueCents = useMemo(() => {
     return Math.round(selectedServicePriceCents * (depositPercent / 100));
@@ -358,38 +528,33 @@ export default function BookingPage() {
   const snapDepositCents = snap?.depositPaidCents ?? depositDueCents;
   const snapRemainingCents = snap?.remainingBalanceCents ?? remainingBalanceCents;
 
-  const goReview = () => {
-    setMsg(null);
-    if (!selectedService || !date || !time) {
-      setMsg({ ok: false, text: 'Choose one service, a date, and a time.' });
-      return;
-    }
-    setStep('review');
-  };
+  /** When a deposit applies, booking is split: details first, then payment. */
+  const requiresPaymentStep = depositDueCents > 0;
 
-  const goTime = () => {
+  const goToPayment = () => {
     setMsg(null);
-    if (!selectedService) {
-      setMsg({ ok: false, text: 'Please select a service.' });
+    if (selectedServices.length === 0 || !date || !time) {
+      setMsg({ ok: false, text: 'Choose at least one service, a date, and a time.' });
       return;
     }
-    setStep('time');
-  };
-
-  const goDetails = () => {
-    setMsg(null);
-    if (!date || !time) {
-      setMsg({ ok: false, text: 'Please select a date and time.' });
-      return;
+    if (!isClientUser) {
+      if (!guestName.trim() || !guestEmail.trim()) {
+        setMsg({ ok: false, text: 'Please enter your name and email so we can confirm your visit.' });
+        return;
+      }
     }
-    setStep('details');
+    setStep('payment');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMsg(null);
-    if (!selectedService || !date || !time) {
-      setMsg({ ok: false, text: 'Choose a service, date, and time.' });
+    if (requiresPaymentStep && step !== 'payment') {
+      return;
+    }
+    if (selectedServices.length === 0 || !date || !time) {
+      setMsg({ ok: false, text: 'Choose at least one service, date, and time.' });
       return;
     }
     if (!isClientUser) {
@@ -433,7 +598,7 @@ export default function BookingPage() {
       const payload: Record<string, unknown> = {
         booking_date: date,
         booking_time: time,
-        services: [selectedService],
+        services: selectedServices,
         idempotency_key: idempotencyKeyRef.current,
       };
       if (!isClientUser) {
@@ -497,7 +662,7 @@ export default function BookingPage() {
           remainingBalanceCents: data.amounts?.remaining_balance_cents ?? remainingBalanceCents,
         });
         setStep('success');
-        setSelectedService(null);
+        setSelectedServices([]);
         setBillingName('');
         setBillingAddress('');
         setBillingCity('');
@@ -519,33 +684,40 @@ export default function BookingPage() {
     }
   };
 
-  const serviceOptions = useMemo(() => {
-    const out: { key: string; label: string }[] = [];
-    for (const cat of categories) {
-      for (const s of cat.services) {
-        out.push({
-          key: `${cat.id}|${s.name}`,
-          label: `${s.name} — ${s.price}`,
-        });
-      }
-    }
-    return out;
-  }, [categories]);
-
-  const selectedServiceLabel = useMemo(() => {
-    if (!selectedService) return 'Please select a service';
-    const [catId, svcName] = selectedService.split('|');
-    const cat = categories.find((c) => c.id === catId);
-    const svc = cat?.services.find((x) => x.name === svcName);
-    if (!cat || !svc) return 'Please select a service';
-    return `${cat.name} — ${svc.name} (${svc.price})`;
-  }, [selectedService, categories]);
+  const selectedServiceRows = useMemo(() => {
+    return selectedServices
+      .map((key) => {
+        const [catId, svcName] = key.split('|');
+        const cat = categories.find((c) => c.id === catId);
+        const svc = cat?.services.find((x) => x.name === svcName);
+        if (!cat || !svc) return null;
+        return {
+          key,
+          category: cat.name,
+          name: svc.name,
+          priceLabel: svc.price,
+          priceCents: parsePriceToCents(svc.price),
+        };
+      })
+      .filter((x): x is { key: string; category: string; name: string; priceLabel: string; priceCents: number } => Boolean(x));
+  }, [selectedServices, categories]);
 
   // IMPORTANT: keep all hooks above any conditional return to avoid hook-order mismatches (React error #310).
   if (authLoading || metaLoading) {
     return (
-      <div className="min-h-screen bg-salon-beige pt-28 flex justify-center">
-        <p className="text-salon-ink/60">Loading…</p>
+      <div className="booking-page-loader" aria-busy="true" aria-live="polite">
+        <div className="booking-page-loader__logo-wrap">
+          <span className="booking-page-loader__orbit" aria-hidden />
+          <span className="booking-page-loader__orbit booking-page-loader__orbit--delayed" aria-hidden />
+          <img
+            src={logoUrl}
+            alt=""
+            className="booking-page-loader__logo"
+            decoding="async"
+          />
+        </div>
+        <p className="booking-page-loader__tagline">Preparing your booking</p>
+        <p className="booking-page-loader__sub">Royal Beauty Care</p>
       </div>
     );
   }
@@ -560,7 +732,15 @@ export default function BookingPage() {
       </div>
       <div className="px-6 sm:px-8 pt-2 pb-10 sm:pb-12">
         <ReviewSection label="Service">
-          <p className="font-medium">{displayLines[0] ?? '—'}</p>
+          <div className="space-y-1">
+            {displayLines.length > 0 ? (
+              displayLines.map((line) => (
+                <p key={line} className="font-medium">{line}</p>
+              ))
+            ) : (
+              <p className="font-medium">—</p>
+            )}
+          </div>
         </ReviewSection>
         <ReviewSection label="Date & time">
           <p className="font-medium">
@@ -595,16 +775,16 @@ export default function BookingPage() {
   );
 
   return (
-    <div className="min-h-screen bg-salon-beige pt-36 md:pt-40 pb-20 px-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="rounded-2xl overflow-hidden shadow-[0_28px_80px_-40px_rgba(0,0,0,0.25)] border border-salon-ink/10 bg-white">
+    <div className="booking-page min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-salon-beige pt-36 md:pt-40 pb-20 px-4 sm:px-6 touch-pan-y">
+      <div className="max-w-6xl mx-auto w-full min-w-0">
+        <div className="rounded-2xl overflow-hidden shadow-[0_28px_80px_-40px_rgba(0,0,0,0.25)] border border-salon-ink/10 bg-white min-w-0">
           <div className="bg-[#0b1626] text-white px-6 sm:px-8 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <h1 className="text-xl sm:text-2xl font-serif">Book Appointment</h1>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-0">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-0 min-w-0">
             {/* Left: steps */}
-            <div className="px-6 sm:px-8 py-7">
+            <div className="min-w-0 px-4 sm:px-8 py-7">
         {isClientUser ? (
           <p className="text-sm text-salon-ink/60 mb-8">
             Signed in as <strong>{user!.name}</strong>.{' '}
@@ -667,38 +847,111 @@ export default function BookingPage() {
         )}
 
         {!isSuccess && (
-          <form onSubmit={onSubmit} className="space-y-10">
+          <form onSubmit={onSubmit} className="min-w-0 space-y-10">
+            {requiresPaymentStep && (
+              <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-widest text-salon-ink/50">
+                <span className={step === 'booking' ? 'font-semibold text-salon-gold' : 'text-salon-ink/40'}>
+                  1. Your visit
+                </span>
+                <span className="text-salon-ink/20" aria-hidden>
+                  →
+                </span>
+                <span className={step === 'payment' ? 'font-semibold text-salon-gold' : 'text-salon-ink/40'}>
+                  2. Payment
+                </span>
+              </div>
+            )}
+            {!(requiresPaymentStep && step === 'payment') && (
             <div className="space-y-8">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.25em] text-salon-ink/55 mb-2">Service</p>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr_auto] gap-4 items-end">
                   <div>
-                    <label className="block text-xs font-medium text-salon-ink/80 mb-2">Select Service</label>
+                    <label className="block text-xs font-medium text-salon-ink/80 mb-2">Category</label>
                     <select
-                      value={selectedService ?? ''}
-                      onChange={(e) => setSelectedService(e.target.value || null)}
+                      value={activeCategoryId}
+                      onChange={(e) => setActiveCategoryId(e.target.value)}
                       className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
                       required
                     >
-                      <option value="">Please select a service</option>
-                      {serviceOptions.map((o) => (
-                        <option key={o.key} value={o.key}>
-                          {o.label}
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
                         </option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-salon-ink/80 mb-2">Preferred Therapist (Optional)</label>
+                    <label className="block text-xs font-medium text-salon-ink/80 mb-2">Service</label>
                     <select
-                      value={therapist}
-                      onChange={(e) => setTherapist(e.target.value)}
+                      value={activeServiceName}
+                      onChange={(e) => setActiveServiceName(e.target.value)}
                       className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
+                      required
                     >
-                      <option>Any Available Professional</option>
-                      <option>Geetha (skin care)</option>
+                      {(activeCategory?.services ?? []).map((svc) => (
+                        <option key={svc.name} value={svc.name}>
+                          {svc.name} — {svc.price}
+                        </option>
+                      ))}
                     </select>
                   </div>
+                  <button
+                    type="button"
+                    onClick={addActiveService}
+                    className="gold-button py-3 px-6 whitespace-nowrap"
+                  >
+                    Add Service
+                  </button>
+                </div>
+                {selectedServiceRows.length > 0 && (
+                  <div className="mt-5 rounded-2xl border border-salon-ink/10 bg-salon-ink/[0.02] p-4 sm:p-5">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-salon-ink/55 mb-3">Selected Services</p>
+                    <div className="space-y-3">
+                      {selectedServiceRows.map((row) => (
+                        <div key={row.key} className="rounded-xl border border-salon-ink/10 bg-white px-4 py-3 flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-sm font-medium text-salon-ink">{row.name}</p>
+                            <p className="text-xs text-salon-ink/55 mt-1">{row.category}</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium text-salon-gold">{formatUsd(row.priceCents)}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeSelectedService(row.key)}
+                              className="text-red-600 hover:text-red-700 text-xs uppercase tracking-widest"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-salon-ink/10 flex items-center justify-between text-sm">
+                      <span className="font-medium text-salon-ink">Total Price:</span>
+                      <span className="font-semibold text-salon-gold">{formatUsd(selectedServicePriceCents)}</span>
+                    </div>
+                  </div>
+                )}
+                <div className="lg:hidden mt-6 space-y-6 border-t border-salon-ink/10 pt-6">
+                  <BookingSummaryAndPolicies
+                    selectedServiceRows={selectedServiceRows}
+                    date={date}
+                    time={time}
+                    therapist={therapist}
+                    selectedServicePriceCents={selectedServicePriceCents}
+                  />
+                </div>
+                <div className="mt-5">
+                  <label className="block text-xs font-medium text-salon-ink/80 mb-2">Preferred Therapist (Optional)</label>
+                  <select
+                    value={therapist}
+                    onChange={(e) => setTherapist(e.target.value)}
+                    className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
+                  >
+                    <option>Any Available Professional</option>
+                    <option>Geetha (skin care)</option>
+                  </select>
                 </div>
               </div>
 
@@ -715,12 +968,19 @@ export default function BookingPage() {
                   <div>
                     <div className="flex items-center gap-2 mb-3 text-salon-ink">
                       <Clock3 className="w-4 h-4 text-salon-gold" />
-                      <h2 className="font-serif text-lg">Available slots</h2>
+                      <h2 className="font-serif text-lg tracking-wide uppercase">
+                        Available slots
+                        {date ? (
+                          <span className="text-salon-ink/70"> ({formatSlotsHeadingDate(date)})</span>
+                        ) : null}
+                      </h2>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {timesForDate.map((cell) => {
                         const disabled = cell.state !== 'available';
                         const sel = time === cell.time && !disabled;
+                        const remaining =
+                          typeof cell.remaining === 'number' && cell.remaining > 0 ? cell.remaining : 3;
                         return (
                           <button
                             key={cell.time}
@@ -732,11 +992,18 @@ export default function BookingPage() {
                                 ? 'border-salon-gold bg-salon-gold/15'
                                 : disabled
                                   ? 'border-salon-ink/10 bg-salon-ink/[0.03] text-salon-ink/35 cursor-not-allowed'
-                                  : 'border-salon-ink/15 hover:border-salon-gold/60'
+                                  : 'border-salon-ink/15 bg-white hover:border-salon-gold/60'
                             }`}
                           >
-                            <div className="font-medium">{formatTimeHm(cell.time)}</div>
-                            {cell.state === 'booked' && <div className="text-[10px] mt-1 text-amber-800/80">Booked</div>}
+                            <div className="font-semibold text-salon-ink">{formatTimeHm(cell.time)}</div>
+                            {cell.state === 'available' && (
+                              <div className="text-[11px] mt-1.5 font-medium text-emerald-700">
+                                {remaining} slots remaining
+                              </div>
+                            )}
+                            {cell.state === 'booked' && (
+                              <div className="text-[10px] mt-1 text-amber-800/80">Booked</div>
+                            )}
                           </button>
                         );
                       })}
@@ -818,7 +1085,21 @@ export default function BookingPage() {
                 )}
               </div>
             </div>
+            )}
 
+            {(!requiresPaymentStep || step === 'payment') && (
+            <>
+            {requiresPaymentStep && step === 'payment' && (
+              <div className="lg:hidden mb-6 border-b border-salon-ink/10 pb-6">
+                <BookingSummaryAndPolicies
+                  selectedServiceRows={selectedServiceRows}
+                  date={date}
+                  time={time}
+                  therapist={therapist}
+                  selectedServicePriceCents={selectedServicePriceCents}
+                />
+              </div>
+            )}
             <div className="rounded-2xl border border-salon-ink/10 bg-white shadow-[0_20px_50px_-24px_rgba(0,0,0,0.15)] overflow-hidden">
               <div className="px-6 sm:px-8 py-5 border-b border-salon-ink/5 bg-gradient-to-r from-white to-salon-beige/60">
                 <p className="text-[10px] uppercase tracking-[0.25em] text-salon-ink/55">Online payment</p>
@@ -925,7 +1206,7 @@ export default function BookingPage() {
                               <Lock className="w-4 h-4" />
                             </span>
                             <div>
-                              <p className="text-[10px] uppercase tracking-widest text-salon-ink/55">Card details</p>
+                              <p className="text-[10px] uppercase tracking-widest text-salon-ink/55">Secure card form</p>
                               <p className="text-sm font-medium text-salon-ink">Secure checkout</p>
                             </div>
                           </div>
@@ -933,15 +1214,7 @@ export default function BookingPage() {
                             Your card number is entered on our processor&apos;s hosted form. We only receive a payment token.
                           </p>
                         </div>
-                        <div className="shrink-0 flex items-center gap-2 text-[10px] uppercase tracking-widest text-salon-ink/45">
-                          <ShieldCheck className="w-4 h-4 text-salon-gold" />
-                          Tokenized
-                        </div>
-                      </div>
-
-                      <div className="rounded-2xl border border-salon-ink/10 bg-white shadow-[0_12px_40px_-24px_rgba(0,0,0,0.14)] overflow-hidden">
-                        <div className="px-4 py-3 bg-salon-beige/40 border-b border-salon-ink/5 flex items-center justify-between">
-                          <p className="text-[10px] uppercase tracking-widest text-salon-ink/55">Secure card form</p>
+                        <div className="shrink-0 flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
                           {cardToken ? (
                             <span className="text-[10px] uppercase tracking-widest text-emerald-800 bg-emerald-50 border border-emerald-200/70 rounded-full px-3 py-1">
                               Verified
@@ -955,18 +1228,20 @@ export default function BookingPage() {
                               Loading…
                             </span>
                           )}
-                        </div>
-
-                        <div className="p-4 sm:p-5">
-                          <iframe
-                            title="Secure card entry"
-                            src={paymentTokenizer.iframeSrc}
-                            className="w-full border-0 bg-transparent rounded-xl"
-                            style={{ height: 260, minHeight: 220 }}
-                            allow="payment"
-                          />
+                          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-salon-ink/45">
+                            <ShieldCheck className="w-4 h-4 text-salon-gold" />
+                            Tokenized
+                          </div>
                         </div>
                       </div>
+
+                      <iframe
+                        title="Secure card entry"
+                        src={paymentTokenizer.iframeSrc}
+                        className="w-full max-w-full block border-0 bg-transparent overflow-hidden"
+                        style={{ height: 242, minHeight: 226 }}
+                        allow="payment"
+                      />
 
                       {cardToken ? (
                         <p className="text-xs text-emerald-800">Card verified — you can submit.</p>
@@ -1036,15 +1311,44 @@ export default function BookingPage() {
               )}
               </div>
             </div>
+            </>
+            )}
 
-            <div className="flex justify-end">
-              <button type="submit" disabled={submitting} className="gold-button py-3 px-10 flex items-center justify-center gap-2 disabled:opacity-50">
-                {submitting ? 'Submitting…' : (
-                  <>
-                    {needsCardPayment ? 'Pay deposit & confirm' : depositDueCents > 0 ? 'Confirm booking' : 'Confirm'} <ArrowRight className="w-4 h-4" />
-                  </>
+            <div className={`flex flex-col-reverse gap-3 sm:flex-row sm:items-center ${requiresPaymentStep && step === 'payment' ? 'sm:justify-between' : 'justify-end'}`}>
+              {requiresPaymentStep && step === 'payment' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMsg(null);
+                    setStep('booking');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-none border border-salon-ink/20 bg-white px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-salon-ink transition-colors hover:border-salon-gold hover:text-salon-gold"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to details
+                </button>
+              )}
+              <div className="flex justify-end sm:ml-auto">
+                {requiresPaymentStep && step === 'booking' ? (
+                  <button
+                    type="button"
+                    onClick={goToPayment}
+                    className="gold-button py-3 px-10 flex items-center justify-center gap-2"
+                  >
+                    Continue to payment <ArrowRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button type="submit" disabled={submitting} className="gold-button py-3 px-10 flex items-center justify-center gap-2 disabled:opacity-50">
+                    {submitting ? 'Submitting…' : (
+                      <>
+                        {needsCardPayment ? 'Pay deposit & confirm' : depositDueCents > 0 ? 'Confirm booking' : 'Confirm'}{' '}
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
                 )}
-              </button>
+              </div>
             </div>
           </form>
         )}
@@ -1079,52 +1383,15 @@ export default function BookingPage() {
         {/* end left */}
             </div>
 
-            {/* Right: summary + policies */}
-            <aside className="bg-[#f7f6f3] px-6 sm:px-8 py-7 border-l border-salon-ink/10">
-              <div className="rounded-2xl bg-white border border-salon-ink/10 shadow-[0_20px_50px_-30px_rgba(0,0,0,0.18)] overflow-hidden">
-                <div className="h-40 bg-[url('https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=1200')] bg-cover bg-center relative">
-                  <div className="absolute inset-0 bg-black/20" />
-                </div>
-                <div className="p-6">
-                  <h3 className="font-serif text-lg text-salon-ink mb-4">Booking Summary</h3>
-                  <div className="space-y-4 text-sm">
-                    <div className="flex gap-3">
-                      <span className="mt-0.5 text-salon-gold"><Check className="w-4 h-4" /></span>
-                      <div>
-                        <div className="text-[10px] uppercase tracking-widest text-salon-ink/50">Service</div>
-                        <div className="text-salon-ink">{selectedServiceLabel}</div>
-                      </div>
-                    </div>
-                    <div className="flex gap-3">
-                      <span className="mt-0.5 text-salon-gold"><CalendarDays className="w-4 h-4" /></span>
-                      <div>
-                        <div className="text-[10px] uppercase tracking-widest text-salon-ink/50">Date & time</div>
-                        <div className="text-salon-ink">{date ? formatYmdLong(date) : '—'}{time ? ` at ${formatTimeHm(time)}` : ''}</div>
-                      </div>
-                    </div>
-                    <div className="flex gap-3">
-                      <span className="mt-0.5 text-salon-gold"><User className="w-4 h-4" /></span>
-                      <div>
-                        <div className="text-[10px] uppercase tracking-widest text-salon-ink/50">Therapist</div>
-                        <div className="text-salon-ink italic">{therapist}</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-6 text-xs text-salon-ink/45 text-right italic">*Payment due at time of service</div>
-                </div>
-              </div>
-
-              <div className="mt-6 rounded-2xl bg-[#0b1626] text-white p-6 shadow-[0_28px_70px_-45px_rgba(0,0,0,0.4)]">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-serif text-lg">Important Policies</h4>
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80">i</span>
-                </div>
-                <ul className="mt-5 space-y-3 text-sm text-white/80">
-                  <li>Please arrive 15 minutes prior to your appointment time to complete necessary forms.</li>
-                  <li>Cancellations made less than 24 hours in advance may be subject to a cancellation fee.</li>
-                  <li>To maintain our serene environment, please silence your mobile devices.</li>
-                </ul>
-              </div>
+            {/* Right: summary + policies (desktop only — mobile shows same blocks under Selected Services) */}
+            <aside className="hidden min-w-0 lg:block bg-[#f7f6f3] px-4 sm:px-8 py-7 border-l border-salon-ink/10">
+              <BookingSummaryAndPolicies
+                selectedServiceRows={selectedServiceRows}
+                date={date}
+                time={time}
+                therapist={therapist}
+                selectedServicePriceCents={selectedServicePriceCents}
+              />
             </aside>
           </div>
         </div>

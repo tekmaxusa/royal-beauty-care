@@ -9,6 +9,9 @@ const CHB_BOOKING_PENDING = 'pending';
 const CHB_BOOKING_CONFIRMED = 'confirmed';
 const CHB_BOOKING_CANCELLED = 'cancelled';
 
+/** Client self-service cancel must be at least this many hours before appointment start. */
+const CHB_CLIENT_CANCEL_MIN_HOURS_BEFORE = 24;
+
 function chb_booking_blocks_slot(string $status): bool
 {
     return $status === CHB_BOOKING_PENDING || $status === CHB_BOOKING_CONFIRMED;
@@ -70,6 +73,64 @@ function fetch_bookings_for_user(int $userId): array
     $stmt->execute([':uid' => $userId]);
 
     return $stmt->fetchAll();
+}
+
+/**
+ * Parse booking local start time (server timezone) from DB date + time columns.
+ */
+function chb_booking_start_datetime(string $dateYmd, string $bookingTimeRaw): ?DateTimeImmutable
+{
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateYmd)) {
+        return null;
+    }
+    $t = trim($bookingTimeRaw);
+    if (preg_match('/^(\d{2}):(\d{2}):(\d{2})$/', $t, $m)) {
+        $ds = sprintf('%s %s:%s:%s', $dateYmd, $m[1], $m[2], $m[3]);
+    } elseif (preg_match('/^(\d{2}):(\d{2})$/', $t, $m)) {
+        $ds = sprintf('%s %s:%s:00', $dateYmd, $m[1], $m[2]);
+    } else {
+        return null;
+    }
+    $dt = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $ds);
+    if (!$dt || $dt->format('Y-m-d H:i:s') !== $ds) {
+        return null;
+    }
+
+    return $dt;
+}
+
+/**
+ * @return array{allowed: bool, error?: string}
+ */
+function booking_client_cancel_window_check(string $dateYmd, string $bookingTimeRaw): array
+{
+    $appt = chb_booking_start_datetime($dateYmd, $bookingTimeRaw);
+    if ($appt === null) {
+        return ['allowed' => false, 'error' => 'Invalid booking time.'];
+    }
+    $now = new DateTimeImmutable('now');
+    $cutoff = $appt->sub(new DateInterval('PT' . CHB_CLIENT_CANCEL_MIN_HOURS_BEFORE . 'H'));
+    if ($now > $cutoff) {
+        return [
+            'allowed' => false,
+            'error' => 'Cancellations must be at least '
+                . CHB_CLIENT_CANCEL_MIN_HOURS_BEFORE
+                . ' hours before your appointment. Please call the salon if you need help.',
+        ];
+    }
+
+    return ['allowed' => true];
+}
+
+function booking_row_client_cancel_allowed(array $row): bool
+{
+    $st = strtolower((string) ($row['status'] ?? ''));
+    if ($st !== CHB_BOOKING_PENDING && $st !== CHB_BOOKING_CONFIRMED) {
+        return false;
+    }
+    $w = booking_client_cancel_window_check((string) ($row['booking_date'] ?? ''), (string) ($row['booking_time'] ?? ''));
+
+    return $w['allowed'];
 }
 
 /**
@@ -414,6 +475,77 @@ function admin_set_booking_status(int $bookingId, string $newStatus): array
 }
 
 /**
+ * Client cancels own booking.
+ *
+ * @return array{ok: bool, error?: string}
+ */
+function client_cancel_own_booking(int $userId, int $bookingId): array
+{
+    if ($userId <= 0 || $bookingId <= 0) {
+        return ['ok' => false, 'error' => 'Invalid request.'];
+    }
+
+    $pdo = db();
+    $stmt = $pdo->prepare(
+        'SELECT status, booking_date, booking_time FROM bookings WHERE id = :id AND user_id = :uid LIMIT 1'
+    );
+    $stmt->execute([':id' => $bookingId, ':uid' => $userId]);
+    $row = $stmt->fetch();
+    if (!is_array($row)) {
+        return ['ok' => false, 'error' => 'Booking not found.'];
+    }
+    $status = (string) ($row['status'] ?? '');
+    if ($status === CHB_BOOKING_CANCELLED) {
+        return ['ok' => false, 'error' => 'This booking is already cancelled.'];
+    }
+    if ($status !== CHB_BOOKING_PENDING && $status !== CHB_BOOKING_CONFIRMED) {
+        return ['ok' => false, 'error' => 'This booking cannot be cancelled.'];
+    }
+
+    $window = booking_client_cancel_window_check(
+        (string) ($row['booking_date'] ?? ''),
+        (string) ($row['booking_time'] ?? '')
+    );
+    if (!$window['allowed']) {
+        return ['ok' => false, 'error' => $window['error'] ?? 'This booking cannot be cancelled online.'];
+    }
+
+    $up = $pdo->prepare(
+        'UPDATE bookings SET status = :new_status WHERE id = :id AND user_id = :uid AND status = :old_status'
+    );
+    $up->execute([
+        ':new_status' => CHB_BOOKING_CANCELLED,
+        ':id' => $bookingId,
+        ':uid' => $userId,
+        ':old_status' => $status,
+    ]);
+    if ($up->rowCount() === 0) {
+        return ['ok' => false, 'error' => 'Could not cancel booking. Please refresh and try again.'];
+    }
+
+    require_once __DIR__ . '/../config/contact_mail.php';
+    $row = fetch_booking_by_id($bookingId);
+    if (is_array($row)) {
+        $bt = (string) ($row['booking_time'] ?? '');
+        $timeHi = $bt;
+        if (preg_match('/^(\d{2}:\d{2})/', $bt, $m)) {
+            $timeHi = $m[1];
+        }
+        chb_send_merchant_client_cancelled_booking_email(
+            $bookingId,
+            (string) ($row['client_name'] ?? ''),
+            (string) ($row['client_email'] ?? ''),
+            (string) ($row['guest_phone'] ?? ''),
+            (string) ($row['booking_date'] ?? ''),
+            $timeHi,
+            trim((string) ($row['service_name'] ?? ''))
+        );
+    }
+
+    return ['ok' => true];
+}
+
+/**
  * Permanently remove bookings (admin only). Does not send client emails.
  *
  * @param list<int> $ids
@@ -446,21 +578,28 @@ function admin_delete_bookings(array $ids): array
 }
 
 /**
- * @return list<string> HH:MM options (30-minute steps, business hours)
+ * Daily time windows (HH:MM, 24h). Edit here to change the public booking grid.
+ *
+ * @return list<string>
  */
 function booking_time_options(): array
 {
-    $out = [];
-    for ($h = 9; $h <= 17; $h++) {
-        foreach (['00', '30'] as $m) {
-            if ($h === 17 && $m === '30') {
-                break;
-            }
-            $out[] = sprintf('%02d:%s', $h, $m);
-        }
-    }
+    return [
+        '10:00',
+        '10:30',
+        '11:15',
+        '12:00',
+        '14:00',
+        '15:30',
+        '16:45',
+        '17:30',
+    ];
+}
 
-    return $out;
+/** Shown in booking-meta as “N slots remaining” for available cells (salon capacity per window). */
+function chb_booking_slots_remaining_display(): int
+{
+    return 3;
 }
 
 function chb_booking_services_summary(array $bookingRow): string

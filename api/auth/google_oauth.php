@@ -73,6 +73,24 @@ function google_oauth_request_host(): string
     return (string) ($_SERVER['HTTP_HOST'] ?? 'localhost:8080');
 }
 
+/**
+ * Directory URL path for scripts under public/ (e.g. /bookings/site/_api/public).
+ * Used so redirect_uri matches where google-oauth-callback.php is actually served.
+ */
+function google_oauth_public_path_prefix(): string
+{
+    $script = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
+    if ($script === '' || !str_ends_with($script, '.php')) {
+        return '';
+    }
+    $dir = dirname(str_replace('\\', '/', $script));
+    if ($dir === '.' || $dir === '/') {
+        return '';
+    }
+
+    return rtrim($dir, '/');
+}
+
 function google_oauth_redirect_uri(): string
 {
     $fromEnv = google_oauth_env('GOOGLE_REDIRECT_URI');
@@ -82,8 +100,10 @@ function google_oauth_redirect_uri(): string
 
     $scheme = google_oauth_request_scheme();
     $host = google_oauth_request_host();
+    $prefix = google_oauth_public_path_prefix();
+    $path = ($prefix === '' ? '' : $prefix) . '/google-oauth-callback.php';
 
-    return $scheme . '://' . $host . '/google-oauth-callback.php';
+    return $scheme . '://' . $host . $path;
 }
 
 function google_oauth_authorization_url(string $state): string

@@ -1,2 +1,4 @@
 .env
 vendor/
+# Optional DKIM signing key (see SMTP_DKIM_PRIVATE_KEY_FILE in .env.example)
+config/dkim_private.pem

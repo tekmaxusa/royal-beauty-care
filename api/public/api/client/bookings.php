@@ -16,6 +16,10 @@ $method = $_SERVER['REQUEST_METHOD'] ?? '';
 if ($method === 'GET') {
     chb_api_require_login();
     $rows = fetch_bookings_for_user(current_user_id());
+    foreach ($rows as &$r) {
+        $r['cancel_allowed'] = booking_row_client_cancel_allowed($r);
+    }
+    unset($r);
     chb_api_json(['ok' => true, 'bookings' => $rows]);
 }
 
@@ -24,6 +28,22 @@ if ($method !== 'POST') {
 }
 
 $body = chb_api_read_json();
+$action = trim((string) ($body['action'] ?? ''));
+
+if ($action === 'cancel') {
+    chb_api_require_login();
+    chb_api_require_client();
+    $bookingId = (int) ($body['booking_id'] ?? 0);
+    if ($bookingId <= 0) {
+        chb_api_json_error('Invalid booking.', 400);
+    }
+    $r = client_cancel_own_booking(current_user_id(), $bookingId);
+    if (!$r['ok']) {
+        chb_api_json_error($r['error'] ?? 'Could not cancel booking.', 400);
+    }
+    chb_api_json(['ok' => true, 'message' => 'Booking cancelled.']);
+}
+
 $date = (string) ($body['booking_date'] ?? '');
 $time = (string) ($body['booking_time'] ?? '');
 $services = $body['services'] ?? [];

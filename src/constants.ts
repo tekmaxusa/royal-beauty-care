@@ -6,6 +6,8 @@ export interface Service {
   duration?: string;
   category: string;
   image: string;
+  /** When set, “Book” deep links use exact names from booking-meta (api/config/booking_services.php). */
+  bookingPick?: { categoryId: string; serviceName: string };
 }
 
 export interface GiftPackage {
@@ -392,7 +394,8 @@ export const SERVICES: Service[] = [
     description: 'Total confidence and hygiene with our professional Brazilian laser hair removal. Our experienced technicians ensure a discreet and comfortable experience with maximum effectiveness.',
     price: '$100.00 (Single) | $500.00 (6 Sessions)',
     category: 'Laser Hair Removal Services',
-    image: 'https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&q=80&w=800'
+    image: 'https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&q=80&w=800',
+    bookingPick: { categoryId: 'laser-hair-removal', serviceName: 'Brazilian Treatment' },
   },
   {
     id: 'co2-full-facial',
@@ -456,7 +459,8 @@ export const SERVICES: Service[] = [
     price: '$14.00/unit',
     duration: '15-30 Mins',
     category: 'Injectable Treatments',
-    image: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&q=80&w=800'
+    image: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&q=80&w=800',
+    bookingPick: { categoryId: 'injectables-fillers', serviceName: 'Botox Cosmetic' },
   },
   {
     id: 'derma-fillers-juvederm',
@@ -465,7 +469,8 @@ export const SERVICES: Service[] = [
     price: '$500 / syringe',
     duration: '60 Mins',
     category: 'Injectable Treatments',
-    image: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&q=80&w=800'
+    image: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&q=80&w=800',
+    bookingPick: { categoryId: 'injectables-fillers', serviceName: 'Dermal Fillers (Juvederm)' },
   },
   // Permanent Makeup
   {
@@ -723,7 +728,8 @@ export const SERVICES: Service[] = [
     price: '$120.00',
     duration: '30-45 Mins',
     category: 'Waxing',
-    image: 'https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&q=80&w=800'
+    image: 'https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&q=80&w=800',
+    bookingPick: { categoryId: 'waxing-services', serviceName: 'Brazilian Waxing' },
   },
   {
     id: 'waxing-full-face',

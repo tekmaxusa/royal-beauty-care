@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
 import { ArrowRight, Star, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { SERVICES, TESTIMONIALS, GALLERY_IMAGES, CONTACT_INFO, SERVICE_CATEGORIES } from '@/src/constants';
+import { TESTIMONIALS, CONTACT_INFO, SERVICE_CATEGORIES } from '@/src/constants';
 import { SafeImage } from '@/src/components/SafeImage';
 import heroSlide1 from '@/src/assets/home-hero-1.png';
 import heroSlide2 from '@/src/assets/home-hero-2.png';
@@ -48,58 +47,37 @@ export const Hero = () => {
   return (
     <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0 z-0">
-        <AnimatePresence mode="wait">
-          <motion.img
-            key={s.id}
-            src={s.image}
-            alt=""
-            className="w-full h-full object-cover"
-            initial={{ opacity: 0, scale: 1.02 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.02 }}
-            transition={{ duration: 1.6, ease: 'easeOut' }}
-          />
-        </AnimatePresence>
+        <img key={s.id} src={s.image} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black/45" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/30 to-black/55" />
       </div>
 
       <div className="relative z-10 text-center text-white px-6">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={s.id}
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -14 }}
-            transition={{ duration: 1.0, ease: 'easeOut' }}
-          >
-            <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-white/70 mb-5">
-              {s.eyebrow}
-            </div>
-            <h1 className="text-5xl md:text-8xl font-serif mb-6 leading-tight whitespace-pre-line">
-              {s.title.split('\n')[0]}{' '}
-              <span className="text-luxury-gold italic">{s.title.split('\n')[1]}</span>
-            </h1>
-            <p className="text-lg md:text-2xl font-light mb-10 max-w-2xl mx-auto italic text-gray-200 leading-relaxed">
-              {s.subtitle}
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                to="/booking"
-                className="inline-block bg-luxury-gold text-white px-12 py-5 text-xs uppercase tracking-widest hover:bg-white hover:text-luxury-black transition-all duration-300 font-bold shadow-lg"
-              >
-                Book Appointment
-              </Link>
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-white/80 hover:text-white transition-colors"
-                onClick={() => setActive((i) => (i + 1) % slides.length)}
-              >
-                Next <ArrowRight size={14} />
-              </button>
-            </div>
-          </motion.div>
-        </AnimatePresence>
+        <div>
+          <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-white/70 mb-5">{s.eyebrow}</div>
+          <h1 className="text-5xl md:text-8xl font-serif mb-6 leading-tight whitespace-pre-line">
+            {s.title.split('\n')[0]}{' '}
+            <span className="text-luxury-gold italic">{s.title.split('\n')[1]}</span>
+          </h1>
+          <p className="text-lg md:text-2xl font-light mb-10 max-w-2xl mx-auto italic text-gray-200 leading-relaxed">
+            {s.subtitle}
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              to="/booking"
+              className="inline-block bg-luxury-gold text-white px-12 py-5 text-xs uppercase tracking-widest hover:bg-white hover:text-luxury-black font-bold shadow-lg"
+            >
+              Book Appointment
+            </Link>
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-white/80 hover:text-white"
+              onClick={() => setActive((i) => (i + 1) % slides.length)}
+            >
+              Next <ArrowRight size={14} />
+            </button>
+          </div>
+        </div>
 
         <div className="mt-10 flex items-center justify-center gap-2">
           {slides.map((x, i) => (
@@ -130,37 +108,33 @@ export const ServicesPreview = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {SERVICE_CATEGORIES.slice(0, 8).map((category, index) => (
-            <motion.div
-              key={category.name}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              viewport={{ once: true }}
-              className="group relative h-[400px] overflow-hidden rounded-sm shadow-lg"
-            >
+          {SERVICE_CATEGORIES.slice(0, 8).map((category) => (
+            <div key={category.name} className="group relative h-[400px] overflow-hidden rounded-sm shadow-lg">
               <SafeImage
                 src={category.image}
                 alt={category.name}
-                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                className="w-full h-full object-cover group-hover:scale-110"
                 referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
               <div className="absolute inset-0 p-8 flex flex-col justify-end text-left">
-                <h3 className="text-2xl font-serif text-white mb-4 group-hover:text-luxury-gold transition-colors">{category.name}</h3>
-                <Link 
-                  to={category.path} 
-                  className="text-[10px] uppercase tracking-widest text-white/70 hover:text-luxury-gold transition-colors flex items-center group/link"
+                <h3 className="text-2xl font-serif text-white mb-4 group-hover:text-luxury-gold">{category.name}</h3>
+                <Link
+                  to={category.path}
+                  className="text-[10px] uppercase tracking-widest text-white/70 hover:text-luxury-gold flex items-center group/link"
                 >
-                  View Details <ArrowRight size={12} className="ml-2 group-hover/link:translate-x-1 transition-transform" />
+                  View Details <ArrowRight size={12} className="ml-2 group-hover/link:translate-x-1" />
                 </Link>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
-        
+
         <div className="mt-20">
-          <Link to="/services" className="inline-block bg-luxury-black text-white px-12 py-5 text-xs uppercase tracking-widest hover:bg-luxury-gold transition-all duration-300">
+          <Link
+            to="/services"
+            className="inline-block bg-luxury-black text-white px-12 py-5 text-xs uppercase tracking-widest hover:bg-luxury-gold"
+          >
             View All Categories
           </Link>
         </div>
@@ -175,23 +149,17 @@ export const AboutPreview = () => {
       <div className="absolute top-0 right-0 w-1/3 h-full opacity-5 pointer-events-none">
         <img src="https://www.transparenttextures.com/patterns/leaf.png" alt="" className="w-full h-full object-repeat" />
       </div>
-      
+
       <div className="container mx-auto px-6">
         <div className="flex flex-col lg:flex-row items-center gap-24">
           <div className="w-full lg:w-1/2 relative">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 1 }}
-              viewport={{ once: true }}
-              className="relative z-10"
-            >
+            <div className="relative z-10">
               <img
                 src={heroSlide2}
                 alt="Salon Interior"
                 className="w-full aspect-[4/5] object-cover shadow-2xl rounded-sm border-[12px] border-white"
               />
-            </motion.div>
+            </div>
             <div className="absolute -top-12 -left-12 w-48 h-48 bg-luxury-gold/10 rounded-full blur-3xl -z-0" />
             <div className="absolute -bottom-12 -right-12 w-64 h-64 border border-luxury-gold/20 -z-0" />
           </div>
@@ -215,7 +183,7 @@ export const AboutPreview = () => {
             </div>
             <Link
               to="/about"
-              className="inline-block bg-luxury-black text-white px-12 py-5 text-xs uppercase tracking-widest hover:bg-luxury-gold transition-all duration-300 shadow-lg"
+              className="inline-block bg-luxury-black text-white px-12 py-5 text-xs uppercase tracking-widest hover:bg-luxury-gold shadow-lg"
             >
               Our Full Story
             </Link>
@@ -236,13 +204,9 @@ export const TestimonialsSlider = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-          {TESTIMONIALS.map((t, index) => (
-            <motion.div 
+          {TESTIMONIALS.map((t) => (
+            <div
               key={t.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              viewport={{ once: true }}
               className="bg-white p-12 shadow-xl rounded-sm flex flex-col items-center text-center relative"
             >
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-luxury-gold rounded-full flex items-center justify-center text-white shadow-lg">
@@ -253,15 +217,13 @@ export const TestimonialsSlider = () => {
                   <Star key={i} size={14} className="text-luxury-gold fill-luxury-gold mx-0.5" />
                 ))}
               </div>
-              <p className="text-gray-600 italic mb-10 leading-relaxed text-lg font-light">"{t.content}"</p>
+              <p className="text-gray-600 italic mb-10 leading-relaxed text-lg font-light">&quot;{t.content}&quot;</p>
               <h4 className="font-serif text-xl mb-1 text-luxury-black">{t.name}</h4>
               <span className="text-[10px] uppercase tracking-[0.2em] text-luxury-gold font-bold">{t.role}</span>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
     </section>
   );
 };
-
-

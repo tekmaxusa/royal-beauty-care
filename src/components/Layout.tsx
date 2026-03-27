@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Instagram, Facebook, Phone, Mail, MapPin, ChevronDown } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/src/lib/utils';
 import { CONTACT_INFO, SERVICE_CATEGORIES } from '@/src/constants';
 import { apiLogout, useAuth } from '@/src/app/context/AuthContext';
@@ -48,7 +47,7 @@ export const Header = () => {
   return (
     <header
       className={cn(
-        'fixed top-0 left-0 w-full z-50 transition-all duration-500',
+        'fixed top-0 left-0 w-full z-50',
         isScrolled ? 'bg-white/95 backdrop-blur-md py-2 shadow-md' : 'bg-transparent py-4'
       )}
     >
@@ -57,10 +56,7 @@ export const Header = () => {
           <img
             src={logoUrl}
             alt="Royal Beauty Care"
-            className={cn(
-              'h-24 w-24 md:h-28 md:w-28 object-contain transition-opacity duration-300',
-              isScrolled ? 'opacity-100' : 'opacity-95',
-            )}
+            className={cn('h-24 w-24 md:h-28 md:w-28 object-contain', isScrolled ? 'opacity-100' : 'opacity-95')}
             loading="eager"
           />
         </Link>
@@ -79,7 +75,7 @@ export const Header = () => {
                   <button
                     type="button"
                     className={cn(
-                      'text-sm uppercase tracking-widest luxury-underline transition-colors duration-300 flex items-center gap-1 py-4',
+                      'text-sm uppercase tracking-widest luxury-underline flex items-center gap-1 py-4',
                       location.pathname === link.path
                         ? 'text-luxury-gold font-semibold' 
                         : (isScrolled ? 'text-luxury-black hover:text-luxury-gold' : 'text-white hover:text-luxury-gold')
@@ -87,29 +83,22 @@ export const Header = () => {
                     onClick={() => setIsServicesOpen((v) => !v)}
                   >
                     {link.name}
-                    <ChevronDown size={12} className={cn("transition-transform duration-300", isServicesOpen && "rotate-180")} />
+                    <ChevronDown size={12} className={cn(isServicesOpen && 'rotate-180')} />
                   </button>
                   
-                  <AnimatePresence>
-                    {isServicesOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        className="absolute top-full left-0 w-64 bg-luxury-black shadow-2xl py-4 z-50"
-                      >
-                        {SERVICE_CATEGORIES.map((cat) => (
-                          <Link
-                            key={cat.name}
-                            to={cat.path}
-                            className="block px-6 py-3 text-xs uppercase tracking-widest text-white hover:text-luxury-gold hover:bg-white/5 transition-all"
-                          >
-                            {cat.name}
-                          </Link>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {isServicesOpen && (
+                    <div className="absolute top-full left-0 w-64 bg-luxury-black shadow-2xl py-4 z-50">
+                      {SERVICE_CATEGORIES.map((cat) => (
+                        <Link
+                          key={cat.name}
+                          to={cat.path}
+                          className="block px-6 py-3 text-xs uppercase tracking-widest text-white hover:text-luxury-gold hover:bg-white/5"
+                        >
+                          {cat.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             }
@@ -118,7 +107,7 @@ export const Header = () => {
                 key={link.name}
                 to={link.path}
                 className={cn(
-                  'text-sm uppercase tracking-widest luxury-underline transition-colors duration-300',
+                  'text-sm uppercase tracking-widest luxury-underline',
                   location.pathname === link.path 
                     ? 'text-luxury-gold font-semibold' 
                     : (isScrolled ? 'text-luxury-black hover:text-luxury-gold' : 'text-white hover:text-luxury-gold')
@@ -133,7 +122,7 @@ export const Header = () => {
             <Link
               to="/login"
               className={cn(
-                'text-sm uppercase tracking-widest luxury-underline transition-colors duration-300',
+                'text-sm uppercase tracking-widest luxury-underline',
                 location.pathname.startsWith('/login')
                   ? 'text-luxury-gold font-semibold'
                   : (isScrolled ? 'text-luxury-black hover:text-luxury-gold' : 'text-white hover:text-luxury-gold')
@@ -149,7 +138,7 @@ export const Header = () => {
                 <Link
                   to="/dashboard"
                   className={cn(
-                    'text-sm uppercase tracking-widest luxury-underline transition-colors duration-300',
+                    'text-sm uppercase tracking-widest luxury-underline',
                     location.pathname.startsWith('/dashboard')
                       ? 'text-luxury-gold font-semibold'
                       : (isScrolled ? 'text-luxury-black hover:text-luxury-gold' : 'text-white hover:text-luxury-gold'),
@@ -162,7 +151,7 @@ export const Header = () => {
                 type="button"
                 onClick={() => void onLogout()}
                 className={cn(
-                  'text-sm uppercase tracking-widest luxury-underline transition-colors duration-300',
+                  'text-sm uppercase tracking-widest luxury-underline',
                   isScrolled ? 'text-luxury-black hover:text-luxury-gold' : 'text-white hover:text-luxury-gold'
                 )}
               >
@@ -174,7 +163,7 @@ export const Header = () => {
           <Link
             to="/booking"
             className={cn(
-              "px-7 py-2.5 text-sm uppercase tracking-widest transition-all duration-300",
+              'px-7 py-2.5 text-sm uppercase tracking-widest',
               isScrolled 
                 ? "bg-luxury-black text-white hover:bg-luxury-gold" 
                 : "bg-white/20 text-white backdrop-blur-sm border border-white/30 hover:bg-white hover:text-luxury-black"
@@ -187,7 +176,7 @@ export const Header = () => {
         {/* Mobile Toggle */}
         <button
           className={cn(
-            "lg:hidden transition-colors duration-300",
+            'lg:hidden',
             isScrolled ? "text-luxury-black" : "text-white"
           )}
           onClick={() => setIsOpen(!isOpen)}
@@ -197,14 +186,8 @@ export const Header = () => {
       </div>
 
       {/* Mobile Menu */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="absolute top-full left-0 w-full bg-white shadow-xl lg:hidden overflow-hidden"
-          >
+      {isOpen && (
+          <div className="absolute top-full left-0 w-full bg-white shadow-xl lg:hidden overflow-hidden">
             <nav className="flex flex-col p-8 space-y-6">
               {!loading && user?.role === 'client' && (
                 <Link
@@ -231,16 +214,10 @@ export const Header = () => {
                         )}
                       >
                         {link.name}
-                        <ChevronDown size={14} className={cn("transition-transform duration-300", isServicesOpen && "rotate-180")} />
+                        <ChevronDown size={14} className={cn(isServicesOpen && 'rotate-180')} />
                       </button>
-                      <AnimatePresence>
-                        {isServicesOpen && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="pl-4 flex flex-col space-y-3 overflow-hidden"
-                          >
+                      {isServicesOpen && (
+                          <div className="pl-4 flex flex-col space-y-3 overflow-hidden">
                             {SERVICE_CATEGORIES.map((cat) => (
                               <Link
                                 key={cat.name}
@@ -251,9 +228,8 @@ export const Header = () => {
                                 {cat.name}
                               </Link>
                             ))}
-                          </motion.div>
+                          </div>
                         )}
-                      </AnimatePresence>
                     </div>
                   ) : (
                     <Link
@@ -287,7 +263,7 @@ export const Header = () => {
                 <button
                   type="button"
                   onClick={() => void onLogout()}
-                  className="text-sm uppercase tracking-widest pb-2 border-b border-luxury-beige w-full text-left text-luxury-black hover:text-luxury-gold transition-colors"
+                  className="text-sm uppercase tracking-widest pb-2 border-b border-luxury-beige w-full text-left text-luxury-black hover:text-luxury-gold"
                 >
                   Logout
                 </button>
@@ -296,14 +272,13 @@ export const Header = () => {
               <Link
                 to="/booking"
                 onClick={() => setIsOpen(false)}
-                className="text-sm uppercase tracking-widest pb-2 border-b border-luxury-beige block text-luxury-black hover:text-luxury-gold transition-colors"
+                className="text-sm uppercase tracking-widest pb-2 border-b border-luxury-beige block text-luxury-black hover:text-luxury-gold"
               >
                 Book Appointment
               </Link>
             </nav>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
     </header>
   );
 };
@@ -322,13 +297,13 @@ export const Footer = () => {
               Since 1986, providing exceptional care to clients in the Denver area. Your trusted sanctuary for premium spa experiences.
             </p>
             <div className="flex space-x-5">
-              <a href="#" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-luxury-gold hover:border-luxury-gold transition-all duration-300">
+              <a href="#" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-luxury-gold hover:border-luxury-gold">
                 <Instagram size={18} />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-luxury-gold hover:border-luxury-gold transition-all duration-300">
+              <a href="#" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-luxury-gold hover:border-luxury-gold">
                 <Facebook size={18} />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-luxury-gold hover:border-luxury-gold transition-all duration-300">
+              <a href="#" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-luxury-gold hover:border-luxury-gold">
                 <Phone size={18} />
               </a>
             </div>
@@ -339,8 +314,8 @@ export const Footer = () => {
             <ul className="space-y-4">
               {navLinks.map((link) => (
                 <li key={link.name}>
-                  <Link to={link.path} className="text-sm text-gray-400 hover:text-white transition-colors flex items-center group">
-                    <span className="w-0 group-hover:w-4 h-[1px] bg-luxury-gold mr-0 group-hover:mr-2 transition-all duration-300" />
+                  <Link to={link.path} className="text-sm text-gray-400 hover:text-white flex items-center group">
+                    <span className="w-0 group-hover:w-4 h-[1px] bg-luxury-gold mr-0 group-hover:mr-2" />
                     {link.name}
                   </Link>
                 </li>
@@ -353,7 +328,7 @@ export const Footer = () => {
             <ul className="space-y-4">
               {SERVICE_CATEGORIES.map((s) => (
                 <li key={s.name}>
-                  <Link to={s.path} className="text-sm text-gray-400 hover:text-white transition-colors">
+                  <Link to={s.path} className="text-sm text-gray-400 hover:text-white">
                     {s.name}
                   </Link>
                 </li>

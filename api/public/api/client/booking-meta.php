@@ -19,9 +19,11 @@ $slotsByDate = [];
 foreach ($calendarDates as $d) {
     $row = [];
     foreach (booking_time_options() as $opt) {
+        $state = booking_time_slot_state($d, $opt);
         $row[] = [
             'time' => $opt,
-            'state' => booking_time_slot_state($d, $opt),
+            'state' => $state,
+            'remaining' => $state === 'available' ? chb_booking_slots_remaining_display() : 0,
         ];
     }
     $slotsByDate[$d] = $row;
