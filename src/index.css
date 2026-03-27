@@ -9,6 +9,11 @@
   --color-luxury-gold: #D4AF37;
   --color-luxury-blush: #FDF2F0;
   --color-luxury-black: #1A1A1A;
+
+  /* Compatibility palette for ported booking/admin pages */
+  --color-salon-beige: var(--color-luxury-beige);
+  --color-salon-gold: var(--color-luxury-gold);
+  --color-salon-ink: var(--color-luxury-black);
 }
 
 @layer base {
@@ -26,6 +31,11 @@
 
 .luxury-underline {
   @apply relative after:absolute after:bottom-0 after:left-0 after:h-[1px] after:w-0 after:bg-luxury-gold after:transition-all after:duration-300 hover:after:w-full;
+}
+
+/* Shared button style used by booking/admin pages */
+.gold-button {
+  @apply inline-flex items-center justify-center gap-2 rounded-none bg-luxury-gold px-8 py-3 text-xs font-semibold uppercase tracking-[0.25em] text-white transition-colors hover:bg-luxury-black focus:outline-none focus-visible:ring-2 focus-visible:ring-luxury-gold focus-visible:ring-offset-2;
 }
 
 /* Custom scrollbar */

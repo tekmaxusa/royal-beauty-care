@@ -1,0 +1,13 @@
+{
+    "name": "royal-beauty-care/api",
+    "description": "Royal Beauty Care API",
+    "type": "project",
+    "authors": [
+        {
+            "name": "Royal Beauty Care"
+        }
+    ],
+    "require": {
+        "phpmailer/phpmailer": "^7.0"
+    }
+}
