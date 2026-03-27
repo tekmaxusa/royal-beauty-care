@@ -4,6 +4,7 @@ import { Menu, X, Instagram, Facebook, Phone, Mail, MapPin, ChevronDown } from '
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/src/lib/utils';
 import { CONTACT_INFO, SERVICE_CATEGORIES } from '@/src/constants';
+import { apiLogout, useAuth } from '@/src/app/context/AuthContext';
 
 const navLinks = [
   { name: 'Home', path: '/' },
@@ -19,6 +20,7 @@ export const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const [isServicesOpen, setIsServicesOpen] = useState(false);
   const location = useLocation();
+  const { user, loading, refreshMe, setUser } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -31,6 +33,17 @@ export const Header = () => {
   const isHomePage = location.pathname === '/';
   const hasHero = ['/', '/gift-packages', '/special-offers', '/services'].includes(location.pathname) || location.pathname.startsWith('/services/');
   const isScrolled = scrolled || !hasHero;
+
+  const onLogout = async () => {
+    setIsOpen(false);
+    setUser(null);
+    await apiLogout();
+    try {
+      await refreshMe();
+    } catch {
+      setUser(null);
+    }
+  };
 
   return (
     <header
@@ -53,6 +66,20 @@ export const Header = () => {
 
         {/* Desktop Nav */}
         <nav className="hidden lg:flex items-center space-x-8">
+          {!loading && user?.role === 'client' && (
+            <Link
+              to="/dashboard"
+              className={cn(
+                'text-xs uppercase tracking-widest luxury-underline transition-colors duration-300',
+                location.pathname.startsWith('/dashboard')
+                  ? 'text-luxury-gold font-semibold'
+                  : (isScrolled ? 'text-luxury-black hover:text-luxury-gold' : 'text-white hover:text-luxury-gold')
+              )}
+            >
+              Client
+            </Link>
+          )}
+
           {navLinks.map((link) => {
             if (link.name === 'Services') {
               return (
@@ -113,8 +140,36 @@ export const Header = () => {
               </Link>
             );
           })}
+
+          {!loading && !user && (
+            <Link
+              to="/login"
+              className={cn(
+                'text-xs uppercase tracking-widest luxury-underline transition-colors duration-300',
+                location.pathname.startsWith('/login')
+                  ? 'text-luxury-gold font-semibold'
+                  : (isScrolled ? 'text-luxury-black hover:text-luxury-gold' : 'text-white hover:text-luxury-gold')
+              )}
+            >
+              Login
+            </Link>
+          )}
+
+          {!loading && user && (
+            <button
+              type="button"
+              onClick={() => void onLogout()}
+              className={cn(
+                'text-xs uppercase tracking-widest luxury-underline transition-colors duration-300',
+                isScrolled ? 'text-luxury-black hover:text-luxury-gold' : 'text-white hover:text-luxury-gold'
+              )}
+            >
+              Logout
+            </button>
+          )}
+
           <Link
-            to="/contact"
+            to="/booking"
             className={cn(
               "px-6 py-2 text-xs uppercase tracking-widest transition-all duration-300",
               isScrolled 
@@ -122,7 +177,7 @@ export const Header = () => {
                 : "bg-white/20 text-white backdrop-blur-sm border border-white/30 hover:bg-white hover:text-luxury-black"
             )}
           >
-            Appointments
+            Book
           </Link>
         </nav>
 
@@ -148,6 +203,19 @@ export const Header = () => {
             className="absolute top-full left-0 w-full bg-white shadow-xl lg:hidden overflow-hidden"
           >
             <nav className="flex flex-col p-8 space-y-6">
+              {!loading && user?.role === 'client' && (
+                <Link
+                  to="/dashboard"
+                  onClick={() => setIsOpen(false)}
+                  className={cn(
+                    'text-sm uppercase tracking-widest pb-2 border-b border-luxury-beige block',
+                    location.pathname.startsWith('/dashboard') ? 'text-luxury-gold' : 'text-luxury-black'
+                  )}
+                >
+                  Client dashboard
+                </Link>
+              )}
+
               {navLinks.map((link) => (
                 <div key={link.name}>
                   {link.name === 'Services' ? (
@@ -198,6 +266,37 @@ export const Header = () => {
                   )}
                 </div>
               ))}
+
+              {!loading && !user && (
+                <Link
+                  to="/login"
+                  onClick={() => setIsOpen(false)}
+                  className={cn(
+                    'text-sm uppercase tracking-widest pb-2 border-b border-luxury-beige block',
+                    location.pathname.startsWith('/login') ? 'text-luxury-gold' : 'text-luxury-black'
+                  )}
+                >
+                  Login
+                </Link>
+              )}
+
+              {!loading && user && (
+                <button
+                  type="button"
+                  onClick={() => void onLogout()}
+                  className="text-sm uppercase tracking-widest pb-2 border-b border-luxury-beige w-full text-left text-luxury-black hover:text-luxury-gold transition-colors"
+                >
+                  Logout
+                </button>
+              )}
+
+              <Link
+                to="/booking"
+                onClick={() => setIsOpen(false)}
+                className="text-sm uppercase tracking-widest pb-2 border-b border-luxury-beige block text-luxury-black hover:text-luxury-gold transition-colors"
+              >
+                Book
+              </Link>
             </nav>
           </motion.div>
         )}
