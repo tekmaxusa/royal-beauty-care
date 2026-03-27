@@ -27,9 +27,12 @@ function AdminIndex() {
   return <Navigate to="/admin/login" replace />;
 }
 
+const routerBasename =
+  import.meta.env.BASE_URL === '/' ? undefined : import.meta.env.BASE_URL.replace(/\/$/, '');
+
 export default function App() {
   return (
-    <Router>
+    <Router basename={routerBasename}>
       <ScrollToTop />
       <BackToTop />
       <AuthProvider>
