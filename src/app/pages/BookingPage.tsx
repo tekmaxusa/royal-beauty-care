@@ -251,15 +251,6 @@ export default function BookingPage() {
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [preselect, categories]);
 
-  useEffect(() => {
-    if (step !== 'review') return;
-    setBillingName((b) => {
-      if (b.trim()) return b;
-      if (isClientUser) return (user?.name ?? '').trim();
-      return guestName.trim();
-    });
-  }, [step, isClientUser, user?.name, guestName]);
-
   const pickService = (catId: string, svcName: string) => {
     const key = `${catId}|${svcName}`;
     setSelectedService((prev) => (prev === key ? null : key));
@@ -300,20 +291,22 @@ export default function BookingPage() {
   const useCardIframe = Boolean(needsCardPayment && paymentTokenizer);
 
   useEffect(() => {
-    if (step !== 'review') return;
-    if (!idempotencyKeyRef.current) {
-      idempotencyKeyRef.current = randomBookingIdempotencyKey();
-    }
-  }, [step]);
+    if (!needsCardPayment) return;
+    setBillingName((b) => {
+      if (b.trim()) return b;
+      if (isClientUser) return (user?.name ?? '').trim();
+      return guestName.trim();
+    });
+  }, [needsCardPayment, isClientUser, user?.name, guestName]);
 
   useEffect(() => {
-    if (step !== 'review' || !paymentTokenizer) {
-      if (step !== 'review') setTokenizerCssLoaded(false);
+    if (!useCardIframe || !paymentTokenizer) {
+      setTokenizerCssLoaded(false);
       return;
     }
     setCardToken('');
     setTokenizerCssLoaded(false);
-  }, [step, paymentTokenizer?.iframeSrc]);
+  }, [useCardIframe, paymentTokenizer?.iframeSrc]);
 
   useEffect(() => {
     const tok = paymentTokenizer;
@@ -557,6 +550,8 @@ export default function BookingPage() {
     );
   }
 
+  const isSuccess = step === 'success';
+
   const reviewBlock = (
     <div className="rounded-2xl border border-salon-ink/10 bg-white shadow-[0_20px_50px_-24px_rgba(0,0,0,0.15)] overflow-hidden">
       <div className="px-6 sm:px-8 py-5 bg-gradient-to-r from-salon-beige/80 to-white border-b border-salon-ink/5">
@@ -605,11 +600,6 @@ export default function BookingPage() {
         <div className="rounded-2xl overflow-hidden shadow-[0_28px_80px_-40px_rgba(0,0,0,0.25)] border border-salon-ink/10 bg-white">
           <div className="bg-[#0b1626] text-white px-6 sm:px-8 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <h1 className="text-xl sm:text-2xl font-serif">Book Appointment</h1>
-            <div className="flex items-center gap-6">
-              <StepPill n={1} label="Service" active={step === 'service' || step === 'time' || step === 'details' || step === 'review' || step === 'success'} />
-              <StepPill n={2} label="Time" active={step === 'time' || step === 'details' || step === 'review' || step === 'success'} />
-              <StepPill n={3} label="Details" active={step === 'details' || step === 'review' || step === 'success'} />
-            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-0">
@@ -645,7 +635,7 @@ export default function BookingPage() {
             <p className="text-sm text-salon-ink leading-relaxed">{metaError}</p>
           </div>
         )}
-        {msg && step !== 'success' && (
+        {msg && !isSuccess && (
           <div
             role="alert"
             className={`mb-6 rounded-2xl border border-salon-ink/10 bg-white shadow-[0_12px_40px_-18px_rgba(0,0,0,0.12)] border-l-4 overflow-hidden ${
@@ -676,189 +666,158 @@ export default function BookingPage() {
           </div>
         )}
 
-        {step === 'service' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-end">
+        {!isSuccess && (
+          <form onSubmit={onSubmit} className="space-y-10">
+            <div className="space-y-8">
               <div>
-                <label className="block text-xs font-medium text-salon-ink/80 mb-2">Select Service</label>
-                <select
-                  value={selectedService ?? ''}
-                  onChange={(e) => setSelectedService(e.target.value || null)}
-                  className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
-                >
-                  <option value="">Please select a service</option>
-                  {serviceOptions.map((o) => (
-                    <option key={o.key} value={o.key}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-salon-ink/55 mb-2">Service</p>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-xs font-medium text-salon-ink/80 mb-2">Select Service</label>
+                    <select
+                      value={selectedService ?? ''}
+                      onChange={(e) => setSelectedService(e.target.value || null)}
+                      className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
+                      required
+                    >
+                      <option value="">Please select a service</option>
+                      {serviceOptions.map((o) => (
+                        <option key={o.key} value={o.key}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-salon-ink/80 mb-2">Preferred Therapist (Optional)</label>
+                    <select
+                      value={therapist}
+                      onChange={(e) => setTherapist(e.target.value)}
+                      className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
+                    >
+                      <option>Any Available Professional</option>
+                      <option>Geetha (skin care)</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-              <button type="button" onClick={goTime} className="gold-button px-6 py-3">
-                Add Service
-              </button>
-            </div>
 
-            <div>
-              <label className="block text-xs font-medium text-salon-ink/80 mb-2">Preferred Therapist (Optional)</label>
-              <select
-                value={therapist}
-                onChange={(e) => setTherapist(e.target.value)}
-                className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
-              >
-                <option>Any Available Professional</option>
-                <option>Geetha (skin care)</option>
-              </select>
-            </div>
-
-            <div className="flex items-center justify-end">
-              <button type="button" onClick={goTime} className="gold-button px-8 py-3">
-                Next <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === 'time' && (
-          <div className="space-y-7">
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-8">
               <div>
-                <div className="flex items-center gap-2 mb-3 text-salon-ink">
-                  <CalendarDays className="w-4 h-4 text-salon-gold" />
-                  <h2 className="font-serif text-lg">Date</h2>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-salon-ink/55 mb-2">Date & time</p>
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-8">
+                  <div>
+                    <div className="flex items-center gap-2 mb-3 text-salon-ink">
+                      <CalendarDays className="w-4 h-4 text-salon-gold" />
+                      <h2 className="font-serif text-lg">Date</h2>
+                    </div>
+                    <BookingDateCalendar availableDates={availableDates} value={date} onChange={setDate} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-3 text-salon-ink">
+                      <Clock3 className="w-4 h-4 text-salon-gold" />
+                      <h2 className="font-serif text-lg">Available slots</h2>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {timesForDate.map((cell) => {
+                        const disabled = cell.state !== 'available';
+                        const sel = time === cell.time && !disabled;
+                        return (
+                          <button
+                            key={cell.time}
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => cell.state === 'available' && setTime(cell.time)}
+                            className={`rounded-xl border px-3 py-3 text-sm text-center transition-colors ${
+                              sel
+                                ? 'border-salon-gold bg-salon-gold/15'
+                                : disabled
+                                  ? 'border-salon-ink/10 bg-salon-ink/[0.03] text-salon-ink/35 cursor-not-allowed'
+                                  : 'border-salon-ink/15 hover:border-salon-gold/60'
+                            }`}
+                          >
+                            <div className="font-medium">{formatTimeHm(cell.time)}</div>
+                            {cell.state === 'booked' && <div className="text-[10px] mt-1 text-amber-800/80">Booked</div>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <input type="hidden" value={time} required />
+                  </div>
                 </div>
-                <BookingDateCalendar availableDates={availableDates} value={date} onChange={setDate} />
               </div>
+
               <div>
-                <div className="flex items-center gap-2 mb-3 text-salon-ink">
-                  <Clock3 className="w-4 h-4 text-salon-gold" />
-                  <h2 className="font-serif text-lg">Available slots</h2>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {timesForDate.map((cell) => {
-                    const disabled = cell.state !== 'available';
-                    const sel = time === cell.time && !disabled;
-                    return (
-                      <button
-                        key={cell.time}
-                        type="button"
-                        disabled={disabled}
-                        onClick={() => cell.state === 'available' && setTime(cell.time)}
-                        className={`rounded-xl border px-3 py-3 text-sm text-center transition-colors ${
-                          sel
-                            ? 'border-salon-gold bg-salon-gold/15'
-                            : disabled
-                              ? 'border-salon-ink/10 bg-salon-ink/[0.03] text-salon-ink/35 cursor-not-allowed'
-                              : 'border-salon-ink/15 hover:border-salon-gold/60'
-                        }`}
-                      >
-                        <div className="font-medium">{formatTimeHm(cell.time)}</div>
-                        {cell.state === 'booked' && <div className="text-[10px] mt-1 text-amber-800/80">Booked</div>}
-                      </button>
-                    );
-                  })}
-                </div>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-salon-ink/55 mb-2">Your details</p>
+                {!isClientUser ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-xs text-salon-ink/70 mb-2">First Name</label>
+                      <input
+                        value={guestFirstName}
+                        onChange={(e) => setGuestFirstName(e.target.value)}
+                        className="w-full rounded-xl border border-salon-ink/15 px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
+                        autoComplete="given-name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-salon-ink/70 mb-2">Last Name</label>
+                      <input
+                        value={guestLastName}
+                        onChange={(e) => setGuestLastName(e.target.value)}
+                        className="w-full rounded-xl border border-salon-ink/15 px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
+                        autoComplete="family-name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-salon-ink/70 mb-2">Email Address</label>
+                      <input
+                        type="email"
+                        value={guestEmail}
+                        onChange={(e) => setGuestEmail(e.target.value)}
+                        className="w-full rounded-xl border border-salon-ink/15 px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
+                        autoComplete="email"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-salon-ink/70 mb-2">Phone Number</label>
+                      <input
+                        type="tel"
+                        value={guestPhone}
+                        onChange={(e) => setGuestPhone(e.target.value)}
+                        className="w-full rounded-xl border border-salon-ink/15 px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
+                        autoComplete="tel"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs text-salon-ink/70 mb-2">Special Requests / Notes</label>
+                      <textarea
+                        value={specialNotes}
+                        onChange={(e) => setSpecialNotes(e.target.value)}
+                        rows={4}
+                        className="w-full rounded-xl border border-salon-ink/15 px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold resize-none"
+                        placeholder="Any allergies or specific concerns we should know about?"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-5">
+                    <div>
+                      <label className="block text-xs text-salon-ink/70 mb-2">Special Requests / Notes</label>
+                      <textarea
+                        value={specialNotes}
+                        onChange={(e) => setSpecialNotes(e.target.value)}
+                        rows={4}
+                        className="w-full rounded-xl border border-salon-ink/15 px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold resize-none"
+                        placeholder="Any allergies or specific concerns we should know about?"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setStep('service')}
-                className="text-sm uppercase tracking-widest text-salon-ink/60 hover:text-salon-gold"
-              >
-                <ArrowLeft className="inline-block w-4 h-4 mr-2" />
-                Back
-              </button>
-              <button type="button" onClick={goDetails} className="gold-button px-8 py-3">
-                Next <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === 'details' && (
-          <div className="space-y-7">
-            <div className="flex items-center gap-2 text-salon-ink">
-              <User className="w-4 h-4 text-salon-gold" />
-              <h2 className="font-serif text-lg">Your Details</h2>
-            </div>
-            {!isClientUser && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-xs text-salon-ink/70 mb-2">First Name</label>
-                  <input
-                    value={guestFirstName}
-                    onChange={(e) => setGuestFirstName(e.target.value)}
-                    className="w-full rounded-xl border border-salon-ink/15 px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
-                    autoComplete="given-name"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-salon-ink/70 mb-2">Last Name</label>
-                  <input
-                    value={guestLastName}
-                    onChange={(e) => setGuestLastName(e.target.value)}
-                    className="w-full rounded-xl border border-salon-ink/15 px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
-                    autoComplete="family-name"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-salon-ink/70 mb-2">Email Address</label>
-                  <input
-                    type="email"
-                    value={guestEmail}
-                    onChange={(e) => setGuestEmail(e.target.value)}
-                    className="w-full rounded-xl border border-salon-ink/15 px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
-                    autoComplete="email"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-salon-ink/70 mb-2">Phone Number</label>
-                  <input
-                    type="tel"
-                    value={guestPhone}
-                    onChange={(e) => setGuestPhone(e.target.value)}
-                    className="w-full rounded-xl border border-salon-ink/15 px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
-                    autoComplete="tel"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-xs text-salon-ink/70 mb-2">Special Requests / Notes</label>
-                  <textarea
-                    value={specialNotes}
-                    onChange={(e) => setSpecialNotes(e.target.value)}
-                    rows={4}
-                    className="w-full rounded-xl border border-salon-ink/15 px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold resize-none"
-                    placeholder="Any allergies or specific concerns we should know about?"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setStep('time')}
-                className="text-sm uppercase tracking-widest text-salon-ink/60 hover:text-salon-gold"
-              >
-                <ArrowLeft className="inline-block w-4 h-4 mr-2" />
-                Back
-              </button>
-              <button type="button" onClick={goReview} className="gold-button px-8 py-3">
-                Confirm Booking <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === 'review' && (
-          <form onSubmit={onSubmit} className="space-y-8">
-            {reviewBlock}
-
-            {/* Contact details already collected in Details step */}
 
             <div className="rounded-2xl border border-salon-ink/10 bg-white shadow-[0_20px_50px_-24px_rgba(0,0,0,0.15)] overflow-hidden">
               <div className="px-6 sm:px-8 py-5 border-b border-salon-ink/5 bg-gradient-to-r from-white to-salon-beige/60">
@@ -1045,21 +1004,8 @@ export default function BookingPage() {
               </div>
             </div>
 
-            <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-between sm:items-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setStep('details');
-                  setMsg(null);
-                  idempotencyKeyRef.current = null;
-                  setCardToken('');
-                  setTokenizerCssLoaded(false);
-                }}
-                className="flex items-center justify-center gap-2 text-sm uppercase tracking-widest text-salon-ink/60 hover:text-salon-ink py-3"
-              >
-                <ArrowLeft className="w-4 h-4" /> Back
-              </button>
-              <button type="submit" disabled={submitting} className="gold-button py-3 px-8 flex items-center justify-center gap-2 disabled:opacity-50">
+            <div className="flex justify-end">
+              <button type="submit" disabled={submitting} className="gold-button py-3 px-10 flex items-center justify-center gap-2 disabled:opacity-50">
                 {submitting ? 'Submitting…' : (
                   <>
                     {needsCardPayment ? 'Pay deposit & confirm' : depositDueCents > 0 ? 'Confirm booking' : 'Confirm'} <ArrowRight className="w-4 h-4" />
@@ -1070,7 +1016,7 @@ export default function BookingPage() {
           </form>
         )}
 
-        {step === 'success' && (
+        {isSuccess && (
           <div className="space-y-8">
             <div className="text-emerald-900 bg-emerald-50 border border-emerald-200/80 rounded-xl px-4 py-4">
               <p className="font-medium">You are booked</p>
