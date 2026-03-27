@@ -5,14 +5,15 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/src/lib/utils';
 import { CONTACT_INFO, SERVICE_CATEGORIES } from '@/src/constants';
 import { apiLogout, useAuth } from '@/src/app/context/AuthContext';
+import logoUrl from '@/src/assets/royal-logo.png';
+import businessHoursImg from '@/src/assets/business-hours.png';
 
 const navLinks = [
-  { name: 'Home', path: '/' },
   { name: 'About Us', path: '/about' },
   { name: 'Services', path: '/services' },
   { name: 'Gift Packages', path: '/gift-packages' },
   { name: 'Special Offers', path: '/special-offers' },
-  { name: 'Appointments', path: '/contact' },
+  { name: 'Contact', path: '/contact' },
 ];
 
 export const Header = () => {
@@ -53,33 +54,38 @@ export const Header = () => {
       )}
     >
       <div className="container mx-auto px-6 flex justify-between items-center">
-        <Link to="/" className="flex flex-col items-center group">
-          <span className={cn(
-            "text-2xl font-serif tracking-[0.2em] uppercase transition-colors duration-300",
-            isScrolled ? "text-luxury-black" : "text-white"
-          )}>Royal</span>
-          <span className={cn(
-            "text-[10px] tracking-[0.4em] uppercase transition-colors duration-300 -mt-1",
-            isScrolled ? "text-luxury-gold" : "text-white/80"
-          )}>Beauty Care</span>
+        <Link to="/" className="flex items-center gap-4 group">
+          <img
+            src={logoUrl}
+            alt="Royal Beauty Care"
+            className={cn(
+              'h-11 w-11 md:h-12 md:w-12 object-contain transition-opacity duration-300',
+              isScrolled ? 'opacity-100' : 'opacity-95',
+            )}
+            loading="eager"
+          />
+          <span className="flex flex-col leading-tight">
+            <span
+              className={cn(
+                'text-2xl md:text-[26px] font-serif tracking-[0.18em] uppercase transition-colors duration-300',
+                isScrolled ? 'text-luxury-black' : 'text-white',
+              )}
+            >
+              Royal
+            </span>
+            <span
+              className={cn(
+                'text-[10px] md:text-[11px] tracking-[0.42em] uppercase transition-colors duration-300 -mt-1',
+                isScrolled ? 'text-luxury-gold' : 'text-white/80',
+              )}
+            >
+              Beauty Care
+            </span>
+          </span>
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden lg:flex items-center space-x-8">
-          {!loading && user?.role === 'client' && (
-            <Link
-              to="/dashboard"
-              className={cn(
-                'text-xs uppercase tracking-widest luxury-underline transition-colors duration-300',
-                location.pathname.startsWith('/dashboard')
-                  ? 'text-luxury-gold font-semibold'
-                  : (isScrolled ? 'text-luxury-black hover:text-luxury-gold' : 'text-white hover:text-luxury-gold')
-              )}
-            >
-              Client
-            </Link>
-          )}
-
+        <nav className="hidden lg:flex items-center space-x-10">
           {navLinks.map((link) => {
             if (link.name === 'Services') {
               return (
@@ -89,18 +95,19 @@ export const Header = () => {
                   onMouseEnter={() => setIsServicesOpen(true)}
                   onMouseLeave={() => setIsServicesOpen(false)}
                 >
-                  <Link
-                    to={link.path}
+                  <button
+                    type="button"
                     className={cn(
-                      'text-xs uppercase tracking-widest luxury-underline transition-colors duration-300 flex items-center gap-1 py-4',
-                      location.pathname === link.path 
+                      'text-sm uppercase tracking-widest luxury-underline transition-colors duration-300 flex items-center gap-1 py-4',
+                      location.pathname === link.path
                         ? 'text-luxury-gold font-semibold' 
                         : (isScrolled ? 'text-luxury-black hover:text-luxury-gold' : 'text-white hover:text-luxury-gold')
                     )}
+                    onClick={() => setIsServicesOpen((v) => !v)}
                   >
                     {link.name}
                     <ChevronDown size={12} className={cn("transition-transform duration-300", isServicesOpen && "rotate-180")} />
-                  </Link>
+                  </button>
                   
                   <AnimatePresence>
                     {isServicesOpen && (
@@ -130,7 +137,7 @@ export const Header = () => {
                 key={link.name}
                 to={link.path}
                 className={cn(
-                  'text-xs uppercase tracking-widest luxury-underline transition-colors duration-300',
+                  'text-sm uppercase tracking-widest luxury-underline transition-colors duration-300',
                   location.pathname === link.path 
                     ? 'text-luxury-gold font-semibold' 
                     : (isScrolled ? 'text-luxury-black hover:text-luxury-gold' : 'text-white hover:text-luxury-gold')
@@ -145,7 +152,7 @@ export const Header = () => {
             <Link
               to="/login"
               className={cn(
-                'text-xs uppercase tracking-widest luxury-underline transition-colors duration-300',
+                'text-sm uppercase tracking-widest luxury-underline transition-colors duration-300',
                 location.pathname.startsWith('/login')
                   ? 'text-luxury-gold font-semibold'
                   : (isScrolled ? 'text-luxury-black hover:text-luxury-gold' : 'text-white hover:text-luxury-gold')
@@ -156,28 +163,43 @@ export const Header = () => {
           )}
 
           {!loading && user && (
-            <button
-              type="button"
-              onClick={() => void onLogout()}
-              className={cn(
-                'text-xs uppercase tracking-widest luxury-underline transition-colors duration-300',
-                isScrolled ? 'text-luxury-black hover:text-luxury-gold' : 'text-white hover:text-luxury-gold'
+            <div className="flex items-center gap-7">
+              {user.role === 'client' && (
+                <Link
+                  to="/dashboard"
+                  className={cn(
+                    'text-sm uppercase tracking-widest luxury-underline transition-colors duration-300',
+                    location.pathname.startsWith('/dashboard')
+                      ? 'text-luxury-gold font-semibold'
+                      : (isScrolled ? 'text-luxury-black hover:text-luxury-gold' : 'text-white hover:text-luxury-gold'),
+                  )}
+                >
+                  Client Dashboard
+                </Link>
               )}
-            >
-              Logout
-            </button>
+              <button
+                type="button"
+                onClick={() => void onLogout()}
+                className={cn(
+                  'text-sm uppercase tracking-widest luxury-underline transition-colors duration-300',
+                  isScrolled ? 'text-luxury-black hover:text-luxury-gold' : 'text-white hover:text-luxury-gold'
+                )}
+              >
+                Logout
+              </button>
+            </div>
           )}
 
           <Link
             to="/booking"
             className={cn(
-              "px-6 py-2 text-xs uppercase tracking-widest transition-all duration-300",
+              "px-7 py-2.5 text-sm uppercase tracking-widest transition-all duration-300",
               isScrolled 
                 ? "bg-luxury-black text-white hover:bg-luxury-gold" 
                 : "bg-white/20 text-white backdrop-blur-sm border border-white/30 hover:bg-white hover:text-luxury-black"
             )}
           >
-            Book
+            Booking
           </Link>
         </nav>
 
@@ -295,7 +317,7 @@ export const Header = () => {
                 onClick={() => setIsOpen(false)}
                 className="text-sm uppercase tracking-widest pb-2 border-b border-luxury-beige block text-luxury-black hover:text-luxury-gold transition-colors"
               >
-                Book
+                Booking
               </Link>
             </nav>
           </motion.div>
@@ -359,7 +381,7 @@ export const Footer = () => {
           </div>
 
           <div>
-            <h4 className="font-serif text-xl mb-8 text-luxury-gold">Appointments</h4>
+            <h4 className="font-serif text-xl mb-8 text-luxury-gold">Contact</h4>
             <ul className="space-y-6">
               <li className="flex items-start space-x-4">
                 <MapPin size={20} className="text-luxury-gold shrink-0" />
@@ -372,6 +394,15 @@ export const Footer = () => {
               <li className="flex items-center space-x-4">
                 <Mail size={20} className="text-luxury-gold shrink-0" />
                 <span className="text-sm text-gray-400 break-all">{CONTACT_INFO.email}</span>
+              </li>
+              <li className="pt-2">
+                <div className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-3">Business hours</div>
+                <img
+                  src={businessHoursImg}
+                  alt="Business hours"
+                  className="w-full max-w-[340px] opacity-90"
+                  loading="lazy"
+                />
               </li>
             </ul>
           </div>

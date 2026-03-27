@@ -1,42 +1,117 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { ArrowRight, Star, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SERVICES, TESTIMONIALS, GALLERY_IMAGES, CONTACT_INFO, SERVICE_CATEGORIES } from '@/src/constants';
+import hoursImg from '@/src/assets/business-hours.png';
 
 export const Hero = () => {
+  const slides = useMemo(
+    () => [
+      {
+        id: 'signature',
+        image:
+          'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=1920',
+        eyebrow: 'Royal Beauty Care',
+        title: 'Indulge in pure\nLuxury',
+        subtitle: 'Premium treatments, curated rituals, and a serene escape designed around you.',
+      },
+      {
+        id: 'precision',
+        image:
+          'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&q=80&w=1920',
+        eyebrow: 'Personalized care',
+        title: 'Feel radiant.\nLook effortless.',
+        subtitle: 'From advanced skincare to signature services—book your next visit in minutes.',
+      },
+      {
+        id: 'hours',
+        image: hoursImg,
+        eyebrow: 'Open 6 days a week',
+        title: 'Business\nHours',
+        subtitle: 'Mon–Sat: 10:00 AM – 7:00 PM · Sun: Closed',
+      },
+    ],
+    [],
+  );
+
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setActive((i) => (i + 1) % slides.length), 6500);
+    return () => window.clearInterval(id);
+  }, [slides.length]);
+
+  const s = slides[active]!;
+
   return (
     <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0 z-0">
-        <img
-          src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=1920"
-          alt="Luxury Spa"
-          className="w-full h-full object-cover"
-          referrerPolicy="no-referrer"
-        />
-        <div className="absolute inset-0 bg-black/40" />
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={s.id}
+            src={s.image}
+            alt=""
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+            initial={{ opacity: 0, scale: 1.02 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.02 }}
+            transition={{ duration: 0.9, ease: 'easeOut' }}
+          />
+        </AnimatePresence>
+        <div className="absolute inset-0 bg-black/45" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/30 to-black/55" />
       </div>
 
       <div className="relative z-10 text-center text-white px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <h1 className="text-5xl md:text-8xl font-serif mb-6 leading-tight">
-            Indulge in Pure <br />
-            <span className="text-luxury-gold italic">Luxury</span>
-          </h1>
-          <p className="text-xl md:text-2xl font-light mb-10 max-w-2xl mx-auto italic text-gray-200 leading-relaxed">
-            Experience the most revitalizing treatments in a top-notch setting.
-          </p>
-          <Link
-            to="/services"
-            className="inline-block bg-luxury-gold text-white px-12 py-5 text-xs uppercase tracking-widest hover:bg-white hover:text-luxury-black transition-all duration-300 font-bold shadow-lg"
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={s.id}
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -14 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
           >
-            Explore Services
-          </Link>
-        </motion.div>
+            <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-white/70 mb-5">
+              {s.eyebrow}
+            </div>
+            <h1 className="text-5xl md:text-8xl font-serif mb-6 leading-tight whitespace-pre-line">
+              {s.title.split('\n')[0]}{' '}
+              <span className="text-luxury-gold italic">{s.title.split('\n')[1]}</span>
+            </h1>
+            <p className="text-lg md:text-2xl font-light mb-10 max-w-2xl mx-auto italic text-gray-200 leading-relaxed">
+              {s.subtitle}
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                to="/booking"
+                className="inline-block bg-luxury-gold text-white px-12 py-5 text-xs uppercase tracking-widest hover:bg-white hover:text-luxury-black transition-all duration-300 font-bold shadow-lg"
+              >
+                Booking
+              </Link>
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-white/80 hover:text-white transition-colors"
+                onClick={() => setActive((i) => (i + 1) % slides.length)}
+              >
+                Next <ArrowRight size={14} />
+              </button>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        <div className="mt-10 flex items-center justify-center gap-2">
+          {slides.map((x, i) => (
+            <button
+              key={x.id}
+              type="button"
+              aria-label={`Go to slide ${i + 1}`}
+              onClick={() => setActive(i)}
+              className={i === active ? 'h-1.5 w-8 bg-luxury-gold' : 'h-1.5 w-8 bg-white/25 hover:bg-white/40'}
+            />
+          ))}
+        </div>
       </div>
     </section>
   );
