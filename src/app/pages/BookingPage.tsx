@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, User } from 'lucide-react';
 import { apiFetch, apiJson } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import BookingDateCalendar from '../components/BookingDateCalendar';
@@ -23,7 +23,7 @@ interface SlotCell {
   state: 'available' | 'booked' | 'past';
 }
 
-type Step = 'choose' | 'review' | 'success';
+type Step = 'service' | 'time' | 'details' | 'review' | 'success';
 
 function parsePriceToCents(price: string): number {
   const clean = price.replace(/[^0-9.]/g, '').trim();
@@ -89,6 +89,21 @@ function ReviewSection({ label, children }: { label: string; children: React.Rea
   );
 }
 
+function StepPill({ n, label, active }: { n: number; label: string; active: boolean }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold ${
+          active ? 'bg-salon-gold text-white' : 'bg-salon-ink/10 text-salon-ink/70'
+        }`}
+      >
+        {n}
+      </span>
+      <span className={`text-xs tracking-wide ${active ? 'text-salon-ink' : 'text-salon-ink/55'}`}>{label}</span>
+    </div>
+  );
+}
+
 export default function BookingPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -104,14 +119,17 @@ export default function BookingPage() {
   /** CardConnect Hosted iFrame Tokenizer (from booking-meta). */
   const [paymentTokenizer, setPaymentTokenizer] = useState<PaymentTokenizerMeta | null>(null);
 
-  const [step, setStep] = useState<Step>('choose');
+  const [step, setStep] = useState<Step>('service');
   /** Single pick: `categoryId|serviceName` */
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
-  const [guestName, setGuestName] = useState('');
+  const [guestFirstName, setGuestFirstName] = useState('');
+  const [guestLastName, setGuestLastName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
+  const [specialNotes, setSpecialNotes] = useState('');
+  const [therapist, setTherapist] = useState('Any Available Professional');
   const [billingName, setBillingName] = useState('');
   const [billingAddress, setBillingAddress] = useState('');
   const [billingCity, setBillingCity] = useState('');
@@ -142,8 +160,10 @@ export default function BookingPage() {
 
   const isClientUser = user?.role === 'client';
 
+  const guestName = useMemo(() => `${guestFirstName} ${guestLastName}`.trim(), [guestFirstName, guestLastName]);
+
   const persistDraftBeforeSignIn = useCallback(() => {
-    const stepToSave = step === 'review' ? 'review' : 'choose';
+    const stepToSave: 'choose' | 'review' = step === 'review' ? 'review' : 'choose';
     persistBookingDraft({
       v: 1,
       step: stepToSave,
@@ -191,7 +211,9 @@ export default function BookingPage() {
 
         const draft = consumeBookingDraft();
         if (draft) {
-          setGuestName(draft.guestName);
+          const parts = (draft.guestName ?? '').trim().split(/\s+/);
+          setGuestFirstName(parts[0] ?? '');
+          setGuestLastName(parts.slice(1).join(' '));
           setGuestEmail(draft.guestEmail);
           setGuestPhone(draft.guestPhone);
 
@@ -210,7 +232,7 @@ export default function BookingPage() {
 
           const canReview =
             draft.step === 'review' && serviceOk && Boolean(nextDate) && Boolean(nextTime);
-          setStep(canReview ? 'review' : 'choose');
+          setStep(canReview ? 'review' : 'service');
         } else {
           setDate((prev) => (prev && s[prev] ? prev : dates[0] || ''));
         }
@@ -350,6 +372,24 @@ export default function BookingPage() {
       return;
     }
     setStep('review');
+  };
+
+  const goTime = () => {
+    setMsg(null);
+    if (!selectedService) {
+      setMsg({ ok: false, text: 'Please select a service.' });
+      return;
+    }
+    setStep('time');
+  };
+
+  const goDetails = () => {
+    setMsg(null);
+    if (!date || !time) {
+      setMsg({ ok: false, text: 'Please select a date and time.' });
+      return;
+    }
+    setStep('details');
   };
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -536,10 +576,44 @@ export default function BookingPage() {
     </div>
   );
 
+  const serviceOptions = useMemo(() => {
+    const out: { key: string; label: string }[] = [];
+    for (const cat of categories) {
+      for (const s of cat.services) {
+        out.push({
+          key: `${cat.id}|${s.name}`,
+          label: `${s.name} — ${s.price}`,
+        });
+      }
+    }
+    return out;
+  }, [categories]);
+
+  const selectedServiceLabel = useMemo(() => {
+    if (!selectedService) return 'Please select a service';
+    const [catId, svcName] = selectedService.split('|');
+    const cat = categories.find((c) => c.id === catId);
+    const svc = cat?.services.find((x) => x.name === svcName);
+    if (!cat || !svc) return 'Please select a service';
+    return `${cat.name} — ${svc.name} (${svc.price})`;
+  }, [selectedService, categories]);
+
   return (
     <div className="min-h-screen bg-salon-beige pt-36 md:pt-40 pb-20 px-6">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-serif text-salon-ink mb-2">Book appointment</h1>
+      <div className="max-w-6xl mx-auto">
+        <div className="rounded-2xl overflow-hidden shadow-[0_28px_80px_-40px_rgba(0,0,0,0.25)] border border-salon-ink/10 bg-white">
+          <div className="bg-[#0b1626] text-white px-6 sm:px-8 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h1 className="text-xl sm:text-2xl font-serif">Book Appointment</h1>
+            <div className="flex items-center gap-6">
+              <StepPill n={1} label="Service" active={step === 'service' || step === 'time' || step === 'details' || step === 'review' || step === 'success'} />
+              <StepPill n={2} label="Time" active={step === 'time' || step === 'details' || step === 'review' || step === 'success'} />
+              <StepPill n={3} label="Details" active={step === 'details' || step === 'review' || step === 'success'} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-0">
+            {/* Left: steps */}
+            <div className="px-6 sm:px-8 py-7">
         {isClientUser ? (
           <p className="text-sm text-salon-ink/60 mb-8">
             Signed in as <strong>{user!.name}</strong>.{' '}
@@ -601,99 +675,181 @@ export default function BookingPage() {
           </div>
         )}
 
-        {step === 'choose' && (
-          <div className="bg-white border border-salon-ink/5 shadow-sm p-8 space-y-8">
-            <div>
-              <h2 className="text-sm uppercase tracking-widest text-salon-gold mb-2">Services</h2>
-              <p className="text-xs text-salon-ink/50 mb-4">One service per appointment (one time slot).</p>
-              <div className="space-y-6">
-                {categories.map((cat) => (
-                  <div
-                    key={cat.id}
-                    id={`booking-cat-${cat.id}`}
-                    className={
-                      preselect === cat.id
-                        ? 'scroll-mt-28 rounded-lg border border-salon-gold/50 bg-salon-gold/10 p-4'
-                        : undefined
-                    }
-                  >
-                    <p className="font-medium text-salon-ink mb-2">{cat.name}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {cat.services.map((s) => {
-                        const key = `${cat.id}|${s.name}`;
-                        const on = selectedService === key;
-                        return (
-                          <button
-                            key={s.name}
-                            type="button"
-                            onClick={() => pickService(cat.id, s.name)}
-                            className={`text-sm px-3 py-2 border rounded transition-colors ${
-                              on ? 'bg-salon-gold/20 border-salon-gold' : 'border-salon-ink/10 hover:border-salon-gold/50'
-                            }`}
-                          >
-                            {s.name} <span className="text-salon-gold text-xs">{s.price}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+        {step === 'service' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-end">
+              <div>
+                <label className="block text-xs font-medium text-salon-ink/80 mb-2">Select Service</label>
+                <select
+                  value={selectedService ?? ''}
+                  onChange={(e) => setSelectedService(e.target.value || null)}
+                  className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
+                >
+                  <option value="">Please select a service</option>
+                  {serviceOptions.map((o) => (
+                    <option key={o.key} value={o.key}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
               </div>
+              <button type="button" onClick={goTime} className="gold-button px-6 py-3">
+                Add Service
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+            <div>
+              <label className="block text-xs font-medium text-salon-ink/80 mb-2">Preferred Therapist (Optional)</label>
+              <select
+                value={therapist}
+                onChange={(e) => setTherapist(e.target.value)}
+                className="w-full rounded-xl border border-salon-ink/15 bg-white px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
+              >
+                <option>Any Available Professional</option>
+                <option>Geetha (skin care)</option>
+              </select>
+            </div>
+
+            <div className="flex items-center justify-end">
+              <button type="button" onClick={goTime} className="gold-button px-8 py-3">
+                Next <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 'time' && (
+          <div className="space-y-7">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-8">
               <div>
-                <label className="block text-[10px] uppercase tracking-widest text-salon-ink/70 mb-2">Date</label>
+                <div className="flex items-center gap-2 mb-3 text-salon-ink">
+                  <CalendarDays className="w-4 h-4 text-salon-gold" />
+                  <h2 className="font-serif text-lg">Date</h2>
+                </div>
                 <BookingDateCalendar availableDates={availableDates} value={date} onChange={setDate} />
               </div>
               <div>
-                <label className="block text-[10px] uppercase tracking-widest text-salon-ink/70 mb-2">Time</label>
-                {date ? (
-                  <div className="mt-2 space-y-2">
-                    <div className="flex flex-wrap gap-2">
-                      {timesForDate.map((cell) => {
-                        const sel = time === cell.time && cell.state === 'available';
-                        const disabled = cell.state !== 'available';
-                        return (
-                          <button
-                            key={cell.time}
-                            type="button"
-                            disabled={disabled}
-                            onClick={() => cell.state === 'available' && setTime(cell.time)}
-                            className={`min-w-[5.5rem] text-left text-sm px-3 py-2 border rounded transition-colors ${
-                              sel
-                                ? 'bg-salon-gold/25 border-salon-gold'
-                                : disabled
-                                  ? 'border-salon-ink/10 bg-salon-ink/[0.03] text-salon-ink/40 cursor-not-allowed'
-                                  : 'border-salon-ink/15 hover:border-salon-gold/50 text-salon-ink'
-                            }`}
-                          >
-                            <span className="font-medium">{formatTimeHm(cell.time)}</span>
-                            {cell.state === 'booked' && (
-                              <span className="block text-[10px] uppercase tracking-wider text-amber-800/80 mt-0.5">
-                                Booked
-                              </span>
-                            )}
-                            {cell.state === 'past' && (
-                              <span className="block text-[10px] uppercase tracking-wider text-salon-ink/35 mt-0.5">
-                                Past
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <p className="text-xs text-salon-ink/45">Booked slots cannot be selected.</p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-salon-ink/50 mt-2">Choose a date to see times.</p>
-                )}
+                <div className="flex items-center gap-2 mb-3 text-salon-ink">
+                  <Clock3 className="w-4 h-4 text-salon-gold" />
+                  <h2 className="font-serif text-lg">Available slots</h2>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {timesForDate.map((cell) => {
+                    const disabled = cell.state !== 'available';
+                    const sel = time === cell.time && !disabled;
+                    return (
+                      <button
+                        key={cell.time}
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => cell.state === 'available' && setTime(cell.time)}
+                        className={`rounded-xl border px-3 py-3 text-sm text-center transition-colors ${
+                          sel
+                            ? 'border-salon-gold bg-salon-gold/15'
+                            : disabled
+                              ? 'border-salon-ink/10 bg-salon-ink/[0.03] text-salon-ink/35 cursor-not-allowed'
+                              : 'border-salon-ink/15 hover:border-salon-gold/60'
+                        }`}
+                      >
+                        <div className="font-medium">{formatTimeHm(cell.time)}</div>
+                        {cell.state === 'booked' && <div className="text-[10px] mt-1 text-amber-800/80">Booked</div>}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setStep('service')}
+                className="text-sm uppercase tracking-widest text-salon-ink/60 hover:text-salon-gold"
+              >
+                <ArrowLeft className="inline-block w-4 h-4 mr-2" />
+                Back
+              </button>
+              <button type="button" onClick={goDetails} className="gold-button px-8 py-3">
+                Next <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
-            <button type="button" onClick={goReview} className="gold-button w-full py-3 flex items-center justify-center gap-2">
-              Review request <ArrowRight className="w-4 h-4" />
-            </button>
+        {step === 'details' && (
+          <div className="space-y-7">
+            <div className="flex items-center gap-2 text-salon-ink">
+              <User className="w-4 h-4 text-salon-gold" />
+              <h2 className="font-serif text-lg">Your Details</h2>
+            </div>
+            {!isClientUser && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-xs text-salon-ink/70 mb-2">First Name</label>
+                  <input
+                    value={guestFirstName}
+                    onChange={(e) => setGuestFirstName(e.target.value)}
+                    className="w-full rounded-xl border border-salon-ink/15 px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
+                    autoComplete="given-name"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-salon-ink/70 mb-2">Last Name</label>
+                  <input
+                    value={guestLastName}
+                    onChange={(e) => setGuestLastName(e.target.value)}
+                    className="w-full rounded-xl border border-salon-ink/15 px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
+                    autoComplete="family-name"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-salon-ink/70 mb-2">Email Address</label>
+                  <input
+                    type="email"
+                    value={guestEmail}
+                    onChange={(e) => setGuestEmail(e.target.value)}
+                    className="w-full rounded-xl border border-salon-ink/15 px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
+                    autoComplete="email"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-salon-ink/70 mb-2">Phone Number</label>
+                  <input
+                    type="tel"
+                    value={guestPhone}
+                    onChange={(e) => setGuestPhone(e.target.value)}
+                    className="w-full rounded-xl border border-salon-ink/15 px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold"
+                    autoComplete="tel"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs text-salon-ink/70 mb-2">Special Requests / Notes</label>
+                  <textarea
+                    value={specialNotes}
+                    onChange={(e) => setSpecialNotes(e.target.value)}
+                    rows={4}
+                    className="w-full rounded-xl border border-salon-ink/15 px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-salon-gold resize-none"
+                    placeholder="Any allergies or specific concerns we should know about?"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setStep('time')}
+                className="text-sm uppercase tracking-widest text-salon-ink/60 hover:text-salon-gold"
+              >
+                <ArrowLeft className="inline-block w-4 h-4 mr-2" />
+                Back
+              </button>
+              <button type="button" onClick={goReview} className="gold-button px-8 py-3">
+                Confirm Booking <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
 
@@ -701,43 +857,7 @@ export default function BookingPage() {
           <form onSubmit={onSubmit} className="space-y-8">
             {reviewBlock}
 
-            {!isClientUser && (
-              <div className="bg-white border border-salon-ink/5 shadow-sm p-8 space-y-4">
-                <h3 className="text-sm font-medium text-salon-ink">Contact details</h3>
-                <p className="text-xs text-salon-ink/55">We’ll use this to confirm your appointment.</p>
-                <div>
-                  <label className="block text-[10px] uppercase tracking-widest text-salon-ink/70 mb-1">Full name</label>
-                  <input
-                    value={guestName}
-                    onChange={(e) => setGuestName(e.target.value)}
-                    className="w-full border-b border-salon-ink/20 py-2 focus:border-salon-gold outline-none bg-transparent"
-                    autoComplete="name"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase tracking-widest text-salon-ink/70 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={guestEmail}
-                    onChange={(e) => setGuestEmail(e.target.value)}
-                    className="w-full border-b border-salon-ink/20 py-2 focus:border-salon-gold outline-none bg-transparent"
-                    autoComplete="email"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase tracking-widest text-salon-ink/70 mb-1">Phone (optional)</label>
-                  <input
-                    type="tel"
-                    value={guestPhone}
-                    onChange={(e) => setGuestPhone(e.target.value)}
-                    className="w-full border-b border-salon-ink/20 py-2 focus:border-salon-gold outline-none bg-transparent"
-                    autoComplete="tel"
-                  />
-                </div>
-              </div>
-            )}
+            {/* Contact details already collected in Details step */}
 
             <div className="bg-white border border-salon-ink/5 shadow-sm p-8 space-y-4">
               <h3 className="text-sm font-medium text-salon-ink">
@@ -957,13 +1077,58 @@ export default function BookingPage() {
           </div>
         )}
 
-        {step === 'choose' && (
-          <p className="mt-8 text-center">
-            <button type="button" onClick={() => navigate(-1)} className="text-sm text-salon-ink/50 hover:text-salon-gold">
-              ← Back
-            </button>
-          </p>
-        )}
+        {/* end left */}
+            </div>
+
+            {/* Right: summary + policies */}
+            <aside className="bg-[#f7f6f3] px-6 sm:px-8 py-7 border-l border-salon-ink/10">
+              <div className="rounded-2xl bg-white border border-salon-ink/10 shadow-[0_20px_50px_-30px_rgba(0,0,0,0.18)] overflow-hidden">
+                <div className="h-40 bg-[url('https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=1200')] bg-cover bg-center relative">
+                  <div className="absolute inset-0 bg-black/20" />
+                </div>
+                <div className="p-6">
+                  <h3 className="font-serif text-lg text-salon-ink mb-4">Booking Summary</h3>
+                  <div className="space-y-4 text-sm">
+                    <div className="flex gap-3">
+                      <span className="mt-0.5 text-salon-gold"><Check className="w-4 h-4" /></span>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-widest text-salon-ink/50">Service</div>
+                        <div className="text-salon-ink">{selectedServiceLabel}</div>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <span className="mt-0.5 text-salon-gold"><CalendarDays className="w-4 h-4" /></span>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-widest text-salon-ink/50">Date & time</div>
+                        <div className="text-salon-ink">{date ? formatYmdLong(date) : '—'}{time ? ` at ${formatTimeHm(time)}` : ''}</div>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <span className="mt-0.5 text-salon-gold"><User className="w-4 h-4" /></span>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-widest text-salon-ink/50">Therapist</div>
+                        <div className="text-salon-ink italic">{therapist}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-6 text-xs text-salon-ink/45 text-right italic">*Payment due at time of service</div>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-2xl bg-[#0b1626] text-white p-6 shadow-[0_28px_70px_-45px_rgba(0,0,0,0.4)]">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-serif text-lg">Important Policies</h4>
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80">i</span>
+                </div>
+                <ul className="mt-5 space-y-3 text-sm text-white/80">
+                  <li>Please arrive 15 minutes prior to your appointment time to complete necessary forms.</li>
+                  <li>Cancellations made less than 24 hours in advance may be subject to a cancellation fee.</li>
+                  <li>To maintain our serene environment, please silence your mobile devices.</li>
+                </ul>
+              </div>
+            </aside>
+          </div>
+        </div>
       </div>
     </div>
   );
