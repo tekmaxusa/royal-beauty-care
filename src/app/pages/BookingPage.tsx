@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, User } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, Lock, ShieldCheck, User } from 'lucide-react';
 import { apiFetch, apiJson } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import BookingDateCalendar from '../components/BookingDateCalendar';
@@ -917,28 +917,61 @@ export default function BookingPage() {
                     </div>
                   </div>
                   {useCardIframe && paymentTokenizer ? (
-                    <div className="space-y-2">
-                      <label className="block text-[10px] uppercase tracking-widest text-salon-ink/70">
-                        Card (secure)
-                      </label>
-                      <p className="text-xs text-salon-ink/55">
-                        Card number, expiry, and CVV are entered on our processor&apos;s hosted form. Only a token is sent
-                        to our server.
-                      </p>
-                      {!tokenizerCssLoaded && (
-                        <p className="text-xs text-salon-ink/45">Loading secure card form…</p>
-                      )}
-                      <iframe
-                        title="Secure card entry"
-                        src={paymentTokenizer.iframeSrc}
-                        className="w-full border-0 bg-transparent"
-                        style={{ height: 200, minHeight: 165 }}
-                        allow="payment"
-                      />
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-salon-gold/15 text-salon-gold">
+                              <Lock className="w-4 h-4" />
+                            </span>
+                            <div>
+                              <p className="text-[10px] uppercase tracking-widest text-salon-ink/55">Card details</p>
+                              <p className="text-sm font-medium text-salon-ink">Secure checkout</p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-salon-ink/55 mt-2 leading-relaxed">
+                            Your card number is entered on our processor&apos;s hosted form. We only receive a payment token.
+                          </p>
+                        </div>
+                        <div className="shrink-0 flex items-center gap-2 text-[10px] uppercase tracking-widest text-salon-ink/45">
+                          <ShieldCheck className="w-4 h-4 text-salon-gold" />
+                          Tokenized
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-salon-ink/10 bg-white shadow-[0_12px_40px_-24px_rgba(0,0,0,0.14)] overflow-hidden">
+                        <div className="px-4 py-3 bg-salon-beige/40 border-b border-salon-ink/5 flex items-center justify-between">
+                          <p className="text-[10px] uppercase tracking-widest text-salon-ink/55">Secure card form</p>
+                          {cardToken ? (
+                            <span className="text-[10px] uppercase tracking-widest text-emerald-800 bg-emerald-50 border border-emerald-200/70 rounded-full px-3 py-1">
+                              Verified
+                            </span>
+                          ) : tokenizerCssLoaded ? (
+                            <span className="text-[10px] uppercase tracking-widest text-salon-ink/55 bg-white border border-salon-ink/10 rounded-full px-3 py-1">
+                              Ready
+                            </span>
+                          ) : (
+                            <span className="text-[10px] uppercase tracking-widest text-salon-ink/45 bg-white border border-salon-ink/10 rounded-full px-3 py-1">
+                              Loading…
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="p-4 sm:p-5">
+                          <iframe
+                            title="Secure card entry"
+                            src={paymentTokenizer.iframeSrc}
+                            className="w-full border-0 bg-transparent rounded-xl"
+                            style={{ height: 260, minHeight: 220 }}
+                            allow="payment"
+                          />
+                        </div>
+                      </div>
+
                       {cardToken ? (
                         <p className="text-xs text-emerald-800">Card verified — you can submit.</p>
                       ) : (
-                        <p className="text-xs text-salon-ink/50">Complete all fields in the form above, then submit.</p>
+                        <p className="text-xs text-salon-ink/50">Complete all fields in the secure form above, then submit.</p>
                       )}
                     </div>
                   ) : (
