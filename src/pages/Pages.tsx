@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { Star, Clock, Info, CheckCircle2, MapPin, Phone, Mail, ArrowRight, ChevronRight } from 'lucide-react';
 import { Hero, ServicesPreview, AboutPreview, TestimonialsSlider } from '@/src/components/HomeSections';
 import { GIFT_PACKAGES, SPECIAL_OFFERS, CONTACT_INFO, SERVICES, SERVICE_CATEGORIES, GALLERY_IMAGES, Service, ServiceCategory } from '@/src/constants';
+import { SafeImage } from '@/src/components/SafeImage';
 
 export const Home = () => {
   return (
@@ -322,9 +323,9 @@ export const Services = () => {
               className="group relative h-[450px] overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-500 flex flex-col justify-end"
             >
               <div className="absolute inset-0 z-0">
-                <img 
-                  src={category.image} 
-                  alt={category.name} 
+                <SafeImage
+                  src={category.image}
+                  alt={category.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 brightness-[0.85] group-hover:brightness-[0.7]"
                   referrerPolicy="no-referrer"
                 />
@@ -468,9 +469,9 @@ export const ServiceCategoryDetail = () => {
     <main className="pt-0">
       {/* Category Hero */}
       <section className="relative h-[60vh] flex items-center justify-center overflow-hidden">
-        <img 
-          src={category.image} 
-          alt={category.name} 
+        <SafeImage
+          src={category.image}
+          alt={category.name}
           className="absolute inset-0 w-full h-full object-cover"
           referrerPolicy="no-referrer"
         />
@@ -548,9 +549,9 @@ export const ServiceCategoryDetail = () => {
                     className="flex flex-col md:flex-row gap-12 items-start group"
                   >
                     <div className="w-full md:w-1/3 aspect-[4/3] overflow-hidden rounded-sm shadow-lg">
-                      <img 
-                        src={service.image} 
-                        alt={service.title} 
+                      <SafeImage
+                        src={service.image}
+                        alt={service.title}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         referrerPolicy="no-referrer"
                       />
@@ -650,7 +651,7 @@ export const Contact = () => {
           <div className="flex flex-col lg:flex-row gap-20">
             <div className="w-full lg:w-1/2">
               <span className="text-xs uppercase tracking-[0.3em] text-luxury-gold mb-4 block">Get In Touch</span>
-              <h1 className="text-5xl md:text-7xl font-serif mb-8">Appointments</h1>
+              <h1 className="text-5xl md:text-7xl font-serif mb-8">Contact Us</h1>
               <p className="text-gray-600 mb-12 leading-relaxed text-lg">
                 Have a question or want to book a consultation? Fill out the form below and our team will get back to you within 24 hours.
               </p>

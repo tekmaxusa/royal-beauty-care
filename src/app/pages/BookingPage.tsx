@@ -537,7 +537,7 @@ export default function BookingPage() {
   );
 
   return (
-    <div className="min-h-screen bg-salon-beige pt-28 pb-20 px-6">
+    <div className="min-h-screen bg-salon-beige pt-36 md:pt-40 pb-20 px-6">
       <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl font-serif text-salon-ink mb-2">Book appointment</h1>
         {isClientUser ? (

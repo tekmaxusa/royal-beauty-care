@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ArrowRight, Star, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SERVICES, TESTIMONIALS, GALLERY_IMAGES, CONTACT_INFO, SERVICE_CATEGORIES } from '@/src/constants';
+import { SafeImage } from '@/src/components/SafeImage';
 
 export const Hero = () => {
   const slides = useMemo(
@@ -139,7 +140,7 @@ export const ServicesPreview = () => {
               viewport={{ once: true }}
               className="group relative h-[400px] overflow-hidden rounded-sm shadow-lg"
             >
-              <img
+              <SafeImage
                 src={category.image}
                 alt={category.name}
                 className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"

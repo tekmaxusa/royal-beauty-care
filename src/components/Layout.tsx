@@ -422,11 +422,15 @@ export const Footer = () => {
               {CONTACT_INFO.paymentNote}
             </p>
           </div>
-          <div className="flex items-center space-x-6 text-gray-500">
-            <i className="fab fa-cc-visa text-2xl" />
-            <i className="fab fa-cc-mastercard text-2xl" />
-            <i className="fab fa-cc-amex text-2xl" />
-            <i className="fab fa-cc-discover text-2xl" />
+          <div className="flex items-center gap-3 text-gray-400">
+            {['VISA', 'MASTERCARD', 'AMEX', 'DISCOVER'].map((x) => (
+              <span
+                key={x}
+                className="inline-flex items-center justify-center px-3 py-1 text-[10px] tracking-[0.22em] uppercase border border-white/10 bg-white/5"
+              >
+                {x}
+              </span>
+            ))}
           </div>
         </div>
       </div>

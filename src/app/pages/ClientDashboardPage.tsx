@@ -99,39 +99,46 @@ export default function ClientDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-salon-beige pt-28 pb-20 px-6">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-salon-beige pt-36 md:pt-40 pb-20 px-6">
+      <div className="max-w-5xl mx-auto">
         <header className="mb-10">
-          <p className="text-[10px] uppercase tracking-widest text-salon-gold mb-1">Client account</p>
-          <h1 className="text-3xl font-serif text-salon-ink">Dashboard</h1>
-          <p className="text-sm text-salon-ink/60 mt-2 max-w-xl">
-            View your appointment requests and status in one place.
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-salon-gold mb-1">Client account</p>
+              <h1 className="text-3xl sm:text-4xl font-serif text-salon-ink">Dashboard</h1>
+              <p className="text-sm text-salon-ink/60 mt-2 max-w-xl">
+                View your appointments and status in one place.
+              </p>
+            </div>
+            <Link to="/booking" className="gold-button text-sm py-2.5 px-5 whitespace-nowrap text-center">
+              Book appointment
+            </Link>
+          </div>
         </header>
 
         <section
-          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-10 pb-8 border-b border-salon-ink/10"
+          className="rounded-2xl border border-salon-ink/10 bg-white shadow-[0_20px_50px_-24px_rgba(0,0,0,0.15)] p-6 sm:p-8 mb-10"
           aria-label="Signed-in account"
         >
-          <div>
-            <p className="font-medium text-salon-ink">{user.name}</p>
-            <p className="text-sm text-salon-ink/60">{user.email}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <Link to="/booking" className="gold-button text-sm py-2 px-4 whitespace-nowrap text-center">
-              Book appointment
-            </Link>
-            <button
-              type="button"
-              onClick={() => void onLogout()}
-              className="text-sm text-salon-ink/50 hover:text-salon-gold"
-            >
-              Log out
-            </button>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-salon-gold mb-2">Signed in</p>
+              <p className="font-medium text-salon-ink">{user.name}</p>
+              <p className="text-sm text-salon-ink/60">{user.email}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                onClick={() => void onLogout()}
+                className="text-sm uppercase tracking-widest text-salon-ink/60 hover:text-salon-gold"
+              >
+                Log out
+              </button>
+            </div>
           </div>
         </section>
 
-        <div className="bg-white border border-salon-ink/5 shadow-sm p-8">
+        <div className="rounded-2xl border border-salon-ink/10 bg-white shadow-[0_20px_50px_-24px_rgba(0,0,0,0.15)] p-6 sm:p-8">
           <h2 className="text-lg font-serif mb-2" id="rbc-dash-appts">
             Your appointments
           </h2>
