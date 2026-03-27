@@ -187,7 +187,7 @@ export const AboutPreview = () => {
               className="relative z-10"
             >
               <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdO8K396WudLVIcq6SXrWZCpLNaX56mmSs1chvHeZKzISNfU43hQ6_5g_u3GH201VrLstRAq2qBcfsXinwZWi24zXotbYlaipAyumLAnMmFEhXLQi1W8NCYh3kpnyQMmRi9PvYFLBap2iozzSiEoa-D4Gz_2SuPihX4q-VXm6ZjeqEtrxBlOnkA5bUbEf5boYwOupB_pZ9f_Ge74s8eD7K3mTx-k5J6HM62c8_FGil0MvX6LX80_BNj4yDYVedzdlrsKabI2zkZ1I"
+                src="https://images.unsplash.com/photo-1560869713-7d0a29430803?auto=format&fit=crop&q=80&w=1200"
                 alt="Salon Interior"
                 className="w-full aspect-[4/5] object-cover shadow-2xl rounded-sm border-[12px] border-white"
                 referrerPolicy="no-referrer"

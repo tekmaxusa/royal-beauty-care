@@ -58,7 +58,7 @@ export const Header = () => {
             src={logoUrl}
             alt="Royal Beauty Care"
             className={cn(
-              'h-16 w-16 md:h-20 md:w-20 object-contain transition-opacity duration-300',
+              'h-20 w-20 md:h-24 md:w-24 object-contain transition-opacity duration-300',
               isScrolled ? 'opacity-100' : 'opacity-95',
             )}
             loading="eager"
