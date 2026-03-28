@@ -6,6 +6,7 @@ require_once __DIR__ . '/../booking/booking.php';
 require_once __DIR__ . '/booking_payments.php';
 require_once __DIR__ . '/booking_refunds.php';
 require_once __DIR__ . '/cardconnect.php';
+require_once __DIR__ . '/clover.php';
 
 function chb_booking_apply_deposit_reversal_cents(int $bookingId, int $reversalAmountCents): void
 {
@@ -66,6 +67,43 @@ function chb_admin_reverse_deposit_on_cancel(int $bookingId): array
     $origRetref = trim((string) ($pay['retref'] ?? ''));
     if ($origRetref === '') {
         return ['ok' => true, 'skipped' => true];
+    }
+
+    $payGw = strtolower(trim((string) ($pay['payment_gateway'] ?? 'cardconnect')));
+    if ($payGw === 'clover') {
+        if (!chb_clover_server_configured()) {
+            return [
+                'ok' => false,
+                'error' => 'Clover is not configured. Refund the deposit in Clover, then cancel again.',
+            ];
+        }
+        $refund = chb_clover_create_refund($origRetref, $refundable);
+        if (!$refund['ok']) {
+            return [
+                'ok' => false,
+                'error' => $refund['error'] ?? 'Clover refund failed.',
+            ];
+        }
+        $rdec = $refund['decoded'] ?? [];
+        $st = strtolower(trim((string) ($rdec['status'] ?? 'succeeded')));
+        if ($st !== '' && $st !== 'succeeded' && $st !== 'pending') {
+            return [
+                'ok' => false,
+                'error' => 'Clover refund did not succeed: ' . $st,
+            ];
+        }
+        chb_refund_record_row(
+            $bookingId,
+            $refundable,
+            $origRetref,
+            'chb-clover-refund-' . $bookingId . '-' . bin2hex(random_bytes(4)),
+            $rdec,
+            (string) ($refund['raw'] ?? ''),
+            'refund'
+        );
+        chb_booking_apply_deposit_reversal_cents($bookingId, $refundable);
+
+        return ['ok' => true, 'method' => 'refund', 'amount_cents' => $refundable];
     }
 
     if (!chb_cardconnect_is_enabled()) {
@@ -140,10 +178,6 @@ function chb_admin_refund_booking_deposit(int $bookingId, ?int $amountCents): ar
         return ['ok' => false, 'error' => 'Invalid booking.'];
     }
 
-    if (!chb_cardconnect_is_enabled()) {
-        return ['ok' => false, 'error' => 'CardConnect is not configured.'];
-    }
-
     $row = fetch_booking_by_id($bookingId);
     if (!$row) {
         return ['ok' => false, 'error' => 'Booking not found.'];
@@ -164,7 +198,7 @@ function chb_admin_refund_booking_deposit(int $bookingId, ?int $amountCents): ar
 
     $pay = chb_payment_row_approved_for_booking($bookingId);
     if ($pay === null) {
-        return ['ok' => false, 'error' => 'No CardConnect capture on file for this booking (nothing to refund via API).'];
+        return ['ok' => false, 'error' => 'No approved deposit payment on file for this booking (nothing to refund via API).'];
     }
 
     $origRetref = trim((string) ($pay['retref'] ?? ''));
@@ -175,6 +209,44 @@ function chb_admin_refund_booking_deposit(int $bookingId, ?int $amountCents): ar
     $refundAmount = $amountCents === null || $amountCents <= 0 ? $refundable : min($refundable, $amountCents);
     if ($refundAmount <= 0) {
         return ['ok' => false, 'error' => 'Refund amount must be positive.'];
+    }
+
+    $payGw = strtolower(trim((string) ($pay['payment_gateway'] ?? 'cardconnect')));
+    if ($payGw === 'clover') {
+        if (!chb_clover_server_configured()) {
+            return ['ok' => false, 'error' => 'Clover is not configured.'];
+        }
+        $cr = chb_clover_create_refund($origRetref, $refundAmount);
+        if (!$cr['ok']) {
+            return ['ok' => false, 'error' => $cr['error'] ?? 'Clover refund failed.'];
+        }
+        $rdec = $cr['decoded'] ?? [];
+        $refundOrderId = 'chb-clover-refund-' . $bookingId . '-' . bin2hex(random_bytes(4));
+        chb_refund_record_row(
+            $bookingId,
+            $refundAmount,
+            $origRetref,
+            $refundOrderId,
+            $rdec,
+            (string) ($cr['raw'] ?? ''),
+            'refund'
+        );
+        chb_booking_apply_deposit_reversal_cents($bookingId, $refundAmount);
+        $row2 = fetch_booking_by_id($bookingId);
+
+        return [
+            'ok' => true,
+            'refund' => [
+                'amount_cents' => $refundAmount,
+                'retref' => (string) ($rdec['id'] ?? ''),
+                'payment_status' => (string) ($row2['payment_status'] ?? ''),
+                'deposit_refunded_cents' => (int) ($row2['deposit_refunded_cents'] ?? 0),
+            ],
+        ];
+    }
+
+    if (!chb_cardconnect_is_enabled()) {
+        return ['ok' => false, 'error' => 'CardConnect is not configured.'];
     }
 
     $refundOrderId = 'chb-refund-' . $bookingId . '-' . bin2hex(random_bytes(4));

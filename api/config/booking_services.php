@@ -315,6 +315,45 @@ function booking_total_price_cents_from_picks(array $picks): int
     return max(0, $total);
 }
 
+/**
+ * Line items for Clover POS orders (one row per booked service).
+ *
+ * @param list<string> $picks list of "categoryId|serviceName"
+ * @return list<array{label:string,price_cents:int}>
+ */
+function booking_clover_line_items_from_picks(array $picks): array
+{
+    $out = [];
+    $seen = [];
+    foreach ($picks as $pick) {
+        if (!is_string($pick) || $pick === '') {
+            continue;
+        }
+        $parts = explode('|', $pick, 2);
+        if (count($parts) < 2) {
+            continue;
+        }
+        $key = strtolower($parts[0]) . '|' . strtolower(trim($parts[1]));
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $v = booking_validate_service_pick($parts[0], $parts[1]);
+        if (!$v['ok']) {
+            continue;
+        }
+        $cents = booking_service_price_cents((string) $parts[0], (string) $parts[1]);
+        if ($cents <= 0) {
+            continue;
+        }
+        $cat = (string) ($v['category'] ?? '');
+        $svc = (string) ($v['service'] ?? '');
+        $out[] = ['label' => $cat . ' — ' . $svc, 'price_cents' => $cents];
+    }
+
+    return $out;
+}
+
 function booking_deposit_due_cents(int $serviceTotalCents): int
 {
     if ($serviceTotalCents <= 0) {

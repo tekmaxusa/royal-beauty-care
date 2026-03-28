@@ -264,13 +264,14 @@ function db_ensure_schema(PDO $pdo): void
                 booking_id INT UNSIGNED NULL,
                 orderid VARCHAR(80) NOT NULL,
                 merchid VARCHAR(32) NOT NULL DEFAULT \'\',
+                payment_gateway VARCHAR(20) NOT NULL DEFAULT \'cardconnect\',
                 amount_cents INT UNSIGNED NOT NULL DEFAULT 0,
                 currency VARCHAR(3) NOT NULL DEFAULT \'USD\',
                 status VARCHAR(20) NOT NULL DEFAULT \'declined\',
                 respstat VARCHAR(8) NOT NULL DEFAULT \'\',
                 respcode VARCHAR(16) NOT NULL DEFAULT \'\',
                 resptext VARCHAR(255) NOT NULL DEFAULT \'\',
-                retref VARCHAR(32) NOT NULL DEFAULT \'\',
+                retref VARCHAR(80) NOT NULL DEFAULT \'\',
                 account_last4 VARCHAR(8) NOT NULL DEFAULT \'\',
                 booking_date DATE NULL,
                 booking_time TIME NULL,
@@ -348,6 +349,35 @@ function db_ensure_schema(PDO $pdo): void
                 CONSTRAINT fk_auth_refresh_tokens_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
         );
+    }
+
+    if ($hasTable($pdo, $dbName, 'bookings')) {
+        if (!$hasCol($pdo, $dbName, 'bookings', 'clover_order_id')) {
+            $pdo->exec(
+                'ALTER TABLE bookings
+                    ADD COLUMN clover_order_id VARCHAR(64) NULL DEFAULT NULL AFTER payment_status,
+                    ADD COLUMN clover_sync_error VARCHAR(512) NULL DEFAULT NULL AFTER clover_order_id,
+                    ADD COLUMN clover_synced_at DATETIME NULL DEFAULT NULL AFTER clover_sync_error'
+            );
+        }
+    }
+
+    if ($hasTable($pdo, $dbName, 'booking_payments')) {
+        if (!$hasCol($pdo, $dbName, 'booking_payments', 'payment_gateway')) {
+            $pdo->exec(
+                "ALTER TABLE booking_payments
+                    ADD COLUMN payment_gateway VARCHAR(20) NOT NULL DEFAULT 'cardconnect' AFTER merchid"
+            );
+        }
+        $retLen = $pdo->prepare(
+            'SELECT CHARACTER_MAXIMUM_LENGTH AS n FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = :s AND TABLE_NAME = \'booking_payments\' AND COLUMN_NAME = \'retref\' LIMIT 1'
+        );
+        $retLen->execute([':s' => $dbName]);
+        $rl = $retLen->fetchColumn();
+        if ($rl !== false && (int) $rl > 0 && (int) $rl < 80) {
+            $pdo->exec('ALTER TABLE booking_payments MODIFY retref VARCHAR(80) NOT NULL DEFAULT \'\'');
+        }
     }
 
     if ($hasCol($pdo, $dbName, 'bookings', 'status')) {

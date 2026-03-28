@@ -4,6 +4,10 @@ import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, Lock, ShieldCheck, 
 import { apiFetch, apiJson } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import BookingDateCalendar from '../components/BookingDateCalendar';
+import CloverDepositForm, {
+  cloverTokenizeFromWindow,
+  type CloverPublicMeta,
+} from '../components/CloverDepositForm';
 import {
   SALON_LOCATION_ADDRESS,
   SALON_LOCATION_NAME,
@@ -228,6 +232,11 @@ export default function BookingPage() {
   const [paymentBypass, setPaymentBypass] = useState(false);
   /** CardConnect Hosted iFrame Tokenizer (from booking-meta). */
   const [paymentTokenizer, setPaymentTokenizer] = useState<PaymentTokenizerMeta | null>(null);
+  /** `cardconnect` | `clover` from booking-meta (CHB_DEPOSIT_GATEWAY). */
+  const [depositGateway, setDepositGateway] = useState<'cardconnect' | 'clover'>('cardconnect');
+  const [cloverPublic, setCloverPublic] = useState<CloverPublicMeta | null>(null);
+  /** Clover `clv_` source token (card tokenize or wallet). */
+  const [cloverSourceToken, setCloverSourceToken] = useState('');
 
   const [step, setStep] = useState<Step>('booking');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -307,6 +316,8 @@ export default function BookingPage() {
           depositPercent?: number;
           paymentBypass?: boolean;
           paymentTokenizer?: PaymentTokenizerMeta | null;
+          depositGateway?: string;
+          clover?: CloverPublicMeta | null;
         }>('/api/client/booking-meta.php', { method: 'GET' });
         const cats = data.categories ?? [];
         setCategories(cats);
@@ -314,6 +325,21 @@ export default function BookingPage() {
         setSlotsByDate(s);
         setDepositPercent(typeof data.depositPercent === 'number' ? data.depositPercent : 20);
         setPaymentBypass(parsePaymentBypassFlag(data.paymentBypass));
+        setDepositGateway(data.depositGateway === 'clover' ? 'clover' : 'cardconnect');
+        const cp = data.clover;
+        if (
+          cp &&
+          typeof cp.merchantId === 'string' &&
+          typeof cp.publicKey === 'string' &&
+          typeof cp.sdkUrl === 'string' &&
+          cp.merchantId.trim() &&
+          cp.publicKey.trim() &&
+          cp.sdkUrl.trim()
+        ) {
+          setCloverPublic(cp);
+        } else {
+          setCloverPublic(null);
+        }
         const tok = data.paymentTokenizer;
         if (tok && typeof tok.iframeSrc === 'string' && typeof tok.allowedOrigin === 'string') {
           setPaymentTokenizer(tok);
@@ -458,7 +484,9 @@ export default function BookingPage() {
   }, [selectedServicePriceCents, depositDueCents]);
 
   const needsCardPayment = depositDueCents > 0 && !paymentBypass;
-  const useCardIframe = Boolean(needsCardPayment && paymentTokenizer);
+  const useCardIframe = Boolean(needsCardPayment && depositGateway === 'cardconnect' && paymentTokenizer);
+  const useCloverPayment = Boolean(needsCardPayment && depositGateway === 'clover' && cloverPublic);
+  const cloverPaymentBlocked = Boolean(needsCardPayment && depositGateway === 'clover' && !cloverPublic);
 
   useEffect(() => {
     if (!needsCardPayment) return;
@@ -543,6 +571,13 @@ export default function BookingPage() {
         return;
       }
     }
+    if (requiresPaymentStep && cloverPaymentBlocked) {
+      setMsg({
+        ok: false,
+        text: 'Card checkout is not available right now (Clover keys missing). Contact the salon or try again later.',
+      });
+      return;
+    }
     setStep('payment');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -563,31 +598,48 @@ export default function BookingPage() {
         return;
       }
     }
+    let resolvedCloverToken = '';
     if (needsCardPayment) {
-      const nameOnCard = billingName.trim() || (isClientUser ? (user?.name ?? '').trim() : guestName.trim());
-      if (!nameOnCard) {
-        setMsg({ ok: false, text: 'Please enter the name on the card (or your full name above).' });
-        return;
-      }
-      if (!billingAddress.trim() || !billingCity.trim() || !billingState.trim()) {
-        setMsg({ ok: false, text: 'Please enter billing street, city, and state for card verification.' });
-        return;
-      }
-      if (!billingPostal.trim()) {
-        setMsg({ ok: false, text: 'Please provide billing ZIP/postal code.' });
-        return;
-      }
-      if (useCardIframe) {
-        if (!cardToken.trim()) {
-          setMsg({
-            ok: false,
-            text: 'Complete the secure card form above and wait until it is ready before submitting.',
-          });
+      if (depositGateway === 'clover') {
+        resolvedCloverToken = cloverSourceToken.trim();
+        if (!resolvedCloverToken) {
+          const tr = await cloverTokenizeFromWindow();
+          if (!tr.ok || !tr.token?.trim()) {
+            setMsg({
+              ok: false,
+              text: tr.error ?? 'Complete the Clover payment form or use Google Pay / Apple Pay, then try again.',
+            });
+            return;
+          }
+          resolvedCloverToken = tr.token.trim();
+          setCloverSourceToken(resolvedCloverToken);
+        }
+      } else {
+        const nameOnCard = billingName.trim() || (isClientUser ? (user?.name ?? '').trim() : guestName.trim());
+        if (!nameOnCard) {
+          setMsg({ ok: false, text: 'Please enter the name on the card (or your full name above).' });
           return;
         }
-      } else if (!cardAccount.trim() || !cardExpiry.trim() || !cardCvv.trim()) {
-        setMsg({ ok: false, text: 'Please enter card number, expiry, and CVV.' });
-        return;
+        if (!billingAddress.trim() || !billingCity.trim() || !billingState.trim()) {
+          setMsg({ ok: false, text: 'Please enter billing street, city, and state for card verification.' });
+          return;
+        }
+        if (!billingPostal.trim()) {
+          setMsg({ ok: false, text: 'Please provide billing ZIP/postal code.' });
+          return;
+        }
+        if (useCardIframe) {
+          if (!cardToken.trim()) {
+            setMsg({
+              ok: false,
+              text: 'Complete the secure card form above and wait until it is ready before submitting.',
+            });
+            return;
+          }
+        } else if (!cardAccount.trim() || !cardExpiry.trim() || !cardCvv.trim()) {
+          setMsg({ ok: false, text: 'Please enter card number, expiry, and CVV.' });
+          return;
+        }
       }
     }
     setSubmitting(true);
@@ -607,19 +659,23 @@ export default function BookingPage() {
         payload.guest_phone = guestPhone.trim();
       }
       if (needsCardPayment) {
-        const nameOnCard = billingName.trim() || (isClientUser ? (user?.name ?? '').trim() : guestName.trim());
-        payload.billing_name = nameOnCard;
-        payload.billing_address = billingAddress.trim();
-        payload.billing_city = billingCity.trim();
-        payload.billing_state = billingState.trim();
-        payload.billing_country = billingCountry.trim() || 'US';
-        payload.billing_postal = billingPostal.trim();
-        if (useCardIframe) {
-          payload.card_token = cardToken.trim();
+        if (depositGateway === 'clover') {
+          payload.clover_source = resolvedCloverToken;
         } else {
-          payload.card_account = cardAccount.trim();
-          payload.card_expiry = cardExpiry.trim();
-          payload.card_cvv = cardCvv.trim();
+          const nameOnCard = billingName.trim() || (isClientUser ? (user?.name ?? '').trim() : guestName.trim());
+          payload.billing_name = nameOnCard;
+          payload.billing_address = billingAddress.trim();
+          payload.billing_city = billingCity.trim();
+          payload.billing_state = billingState.trim();
+          payload.billing_country = billingCountry.trim() || 'US';
+          payload.billing_postal = billingPostal.trim();
+          if (useCardIframe) {
+            payload.card_token = cardToken.trim();
+          } else {
+            payload.card_account = cardAccount.trim();
+            payload.card_expiry = cardExpiry.trim();
+            payload.card_cvv = cardCvv.trim();
+          }
         }
       }
       const res = await apiFetch('/api/client/bookings.php', {
@@ -673,6 +729,7 @@ export default function BookingPage() {
         setCardExpiry('');
         setCardCvv('');
         setCardToken('');
+        setCloverSourceToken('');
         idempotencyKeyRef.current = null;
         clearBookingDraft();
       }
@@ -1122,7 +1179,35 @@ export default function BookingPage() {
               </div>
 
               <div className="px-6 sm:px-8 py-7 space-y-6">
-              {needsCardPayment ? (
+              {needsCardPayment && cloverPaymentBlocked ? (
+                <div
+                  className="rounded-xl border border-red-200/80 bg-red-50 px-4 py-3 text-sm text-red-900"
+                  role="alert"
+                >
+                  Online deposit via Clover is not configured (missing merchant keys). Please contact {SALON_NAME} or try
+                  again later.
+                </div>
+              ) : needsCardPayment && useCloverPayment && cloverPublic ? (
+                <>
+                  <p className="text-xs text-salon-ink/55">
+                    Pay {formatUsd(depositDueCents)} now to reserve this slot. Remaining balance and tip are collected in
+                    store.
+                  </p>
+                  <CloverDepositForm
+                    active={step === 'payment'}
+                    depositCents={depositDueCents}
+                    meta={cloverPublic}
+                    onTokenChange={setCloverSourceToken}
+                  />
+                  {cloverSourceToken ? (
+                    <p className="text-xs text-emerald-800">Payment method ready — submit to confirm.</p>
+                  ) : (
+                    <p className="text-xs text-salon-ink/50">
+                      Enter card details or use the wallet button, then submit.
+                    </p>
+                  )}
+                </>
+              ) : needsCardPayment ? (
                 <>
                   <p className="text-xs text-salon-ink/55">
                     Pay {formatUsd(depositDueCents)} now to reserve this slot. Remaining balance and tip are collected in store.

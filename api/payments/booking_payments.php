@@ -17,7 +17,8 @@ function chb_payment_record_attempt(
     array $gatewayResponse,
     string $rawResponseJson,
     string $bookingDate,
-    string $bookingTime
+    string $bookingTime,
+    string $paymentGateway = 'cardconnect'
 ): void {
     $retref = trim((string) ($gatewayResponse['retref'] ?? ''));
     $respstat = trim((string) ($gatewayResponse['respstat'] ?? ''));
@@ -27,13 +28,14 @@ function chb_payment_record_attempt(
     $last4 = $account === '' ? '' : substr(preg_replace('/\D+/', '', $account) ?? '', -4);
     $timeNorm = preg_match('/^\d{2}:\d{2}$/', $bookingTime) ? ($bookingTime . ':00') : null;
     $rawSafe = $rawResponseJson !== '' ? mb_substr($rawResponseJson, 0, 16000) : null;
+    $gw = strtolower(trim($paymentGateway)) === 'clover' ? 'clover' : 'cardconnect';
     $pdo = db();
     $stmt = $pdo->prepare(
         'INSERT INTO booking_payments (
             booking_id, orderid, merchid, amount_cents, currency, status, respstat, respcode, resptext, retref, account_last4,
-            booking_date, booking_time, raw_response_json
+            booking_date, booking_time, raw_response_json, payment_gateway
          ) VALUES (
-            :bid, :oid, :mid, :amt, :cur, :st, :rs, :rc, :rt, :rr, :l4, :bd, :bt, :raw
+            :bid, :oid, :mid, :amt, :cur, :st, :rs, :rc, :rt, :rr, :l4, :bd, :bt, :raw, :gw
          )
          ON DUPLICATE KEY UPDATE
             booking_id = VALUES(booking_id),
@@ -47,7 +49,8 @@ function chb_payment_record_attempt(
             account_last4 = VALUES(account_last4),
             booking_date = VALUES(booking_date),
             booking_time = VALUES(booking_time),
-            raw_response_json = VALUES(raw_response_json)'
+            raw_response_json = VALUES(raw_response_json),
+            payment_gateway = VALUES(payment_gateway)'
     );
     $stmt->execute([
         ':bid' => $bookingId,
@@ -64,6 +67,7 @@ function chb_payment_record_attempt(
         ':bd' => preg_match('/^\d{4}-\d{2}-\d{2}$/', $bookingDate) ? $bookingDate : null,
         ':bt' => $timeNorm,
         ':raw' => $rawSafe,
+        ':gw' => $gw,
     ]);
 }
 
@@ -79,7 +83,7 @@ function chb_payment_row_approved_for_booking(int $bookingId): ?array
     }
     $pdo = db();
     $stmt = $pdo->prepare(
-        'SELECT id, booking_id, orderid, merchid, amount_cents, currency, retref, status
+        'SELECT id, booking_id, orderid, merchid, amount_cents, currency, retref, status, payment_gateway
          FROM booking_payments
          WHERE booking_id = :bid AND status = :st AND TRIM(retref) <> \'\'
          ORDER BY id DESC
