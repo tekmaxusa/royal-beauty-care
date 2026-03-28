@@ -10,11 +10,23 @@ View your app in AI Studio: https://ai.studio/apps/b327323a-0904-43bb-8b14-1203f
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
+**Prerequisites:** Node.js
 
+1. Install dependencies: `npm install`
+2. Optional: set `GEMINI_API_KEY` in `.env.local` for AI features
+3. Run the SPA: `npm run dev` (proxies `/api` to `http://127.0.0.1:8080` by default)
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### Full stack with Docker (PHP + MySQL + Vite)
+
+From the repo root:
+
+```bash
+cp api/.env.example api/.env   # optional
+docker compose up --build -d
+```
+
+- App: http://localhost:3000  
+- API: http://localhost:8080  
+- phpMyAdmin: http://localhost:8081  
+
+See **`docker/README.md`** and **`api/README.md`**. **cPanel** deploy uses `scripts/deploy-cpanel.sh`, not Docker.

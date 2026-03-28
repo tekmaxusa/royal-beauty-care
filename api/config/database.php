@@ -16,7 +16,7 @@ function db(): PDO
     }
 
     $host = getenv('DB_HOST') ?: 'db';
-    $name = getenv('DB_NAME') ?: 'change_hair_beauty';
+    $name = getenv('DB_NAME') ?: 'royal_beauty_care';
     $user = getenv('DB_USER') ?: 'salon_user';
     $pass = getenv('DB_PASS') ?: '';
 

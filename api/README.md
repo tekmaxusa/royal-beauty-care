@@ -79,7 +79,7 @@ This means **nothing is listening on the port you opened** (or Docker is not run
    docker compose ps
    ```
 
-   `chb-frontend`, `chb-web`, `chb-mysql`, and (if you use the browser DB UI) `chb-phpmyadmin` should be **Up**. First start runs `npm ci` in the frontend container (can take a minute).    If phpMyAdmin is missing, run: `docker compose up phpmyadmin -d`.
+   `rbc-frontend`, `rbc-web`, `rbc-mysql`, and (if you use the browser DB UI) `rbc-phpmyadmin` should be **Up**. First start runs `npm ci` in the frontend container (can take a minute). If phpMyAdmin is missing, run: `docker compose up phpmyadmin -d`.
 
 If port `3306` is already in use on your machine, keep Compose on `DB_PORT=3307` (default) or change `DB_PORT` in `.env`.
 

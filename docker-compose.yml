@@ -1,0 +1,82 @@
+# Local full stack: React (Vite) + PHP API + MySQL (+ phpMyAdmin).
+# Run from repository root: docker compose up --build -d
+# UI: http://localhost:FRONTEND_PORT (default 3000) — `/api` proxied to `web`.
+# API: http://localhost:WEB_PORT (default 8080).
+# Not used by cPanel; deploy uses scripts/deploy-cpanel.sh (dist + api only).
+
+services:
+  frontend:
+    image: node:20-bookworm-slim
+    container_name: rbc-frontend
+    working_dir: /app
+    volumes:
+      - .:/app
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      VITE_DEV_API_PROXY: http://web:80
+    command: sh -c "npm ci && npm run dev"
+    depends_on:
+      - web
+
+  web:
+    build:
+      context: ./docker/web
+      dockerfile: Dockerfile
+    container_name: rbc-web
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    volumes:
+      - ./api:/var/www/html
+    environment:
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-royal_beauty_care}
+      DB_USER: ${DB_USER:-salon_user}
+      DB_PASS: ${DB_PASS:-salon_secret}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000,http://127.0.0.1:3000}
+      CHB_APP_PUBLIC_URL: ${CHB_APP_PUBLIC_URL:-http://localhost:3000}
+      CHB_SESSION_CROSS_SITE: ${CHB_SESSION_CROSS_SITE:-0}
+      ADMIN_BOOKING_WEBHOOK_URL: ${ADMIN_BOOKING_WEBHOOK_URL:-}
+      ADMIN_BOOKING_WEBHOOK_SECRET: ${ADMIN_BOOKING_WEBHOOK_SECRET:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.0
+    container_name: rbc-mysql
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-royal_beauty_care}
+      MYSQL_USER: ${DB_USER:-salon_user}
+      MYSQL_PASSWORD: ${DB_PASS:-salon_secret}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_secret_change_me}
+    ports:
+      - "${DB_PORT:-3307}:3306"
+    volumes:
+      - rbc_mysql_data:/var/lib/mysql
+      - ./api/sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD", "sh", "-c", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 25s
+
+  phpmyadmin:
+    image: phpmyadmin:5-apache
+    container_name: rbc-phpmyadmin
+    ports:
+      - "${PMA_PORT:-8081}:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      UPLOAD_LIMIT: 64M
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  rbc_mysql_data:

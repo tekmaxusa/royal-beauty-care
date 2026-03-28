@@ -6,6 +6,8 @@ set -euo pipefail
 # - Frontend dist -> public_html/bookings/royalbeautycare
 # - API tree      -> public_html/bookings/royalbeautycare/_api  (matches VITE_API_URL .../_api/public)
 #
+# Local api/.env is NEVER rsynced (excluded below). Configure production secrets only on the server.
+#
 # Optional: CPANEL_SSH_IDENTITY_FILE=/path/to/key (ed25519/rsa private key for non-interactive deploy)
 #
 # Usage examples:
@@ -124,6 +126,8 @@ if [[ "$TARGET" == "api" || "$TARGET" == "all" ]]; then
   rsync "${RSYNC_COMMON[@]}" "${RSYNC_SSH[@]}" \
     --exclude "sql/" \
     --exclude ".env" \
+    --exclude ".env.local" \
+    --exclude ".env.*.local" \
     --exclude ".dockerignore" \
     "$ROOT_DIR/api/" "${CPANEL_SSH_USER}@${CPANEL_SSH_HOST}:$API_REMOTE_PATH/"
 fi
@@ -136,5 +140,5 @@ API path:      $API_REMOTE_PATH
 
 Note:
 - API webroot must point to: $API_REMOTE_PATH/public
-- Keep server-side api/.env on cPanel (script does not overwrite it)
+- api/.env and common local env files are excluded from rsync; create or edit .env only on the server
 EOF
