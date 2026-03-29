@@ -1323,8 +1323,7 @@ export default function BookingPage() {
                       <iframe
                         title="Secure card entry"
                         src={paymentTokenizer.iframeSrc}
-                        className="w-full max-w-full block border-0 bg-transparent overflow-hidden"
-                        style={{ height: 242, minHeight: 226 }}
+                        className="w-full max-w-full block border-0 bg-transparent overflow-hidden h-[242px] min-h-[226px] md:h-[300px] md:min-h-[300px]"
                         allow="payment"
                       />
 
